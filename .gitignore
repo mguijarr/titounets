@@ -6,6 +6,7 @@ jspm_packages
 stats.json
 app.js
 *js.map
+*.passwd
 
 # Cruft
 .DS_Store
