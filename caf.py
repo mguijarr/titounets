@@ -2,48 +2,94 @@ import os
 import requests
 import urlparse
 from bs4 import BeautifulSoup
-from locale import *
+import locale
 import re
+import sys
 
 CAF_URL = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletAccesCAFPro"
-CAF_PROFIL = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletMenuProfil"
-CAF_QF = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletAccesRubrique"
-"?numRubrique=1&codeOrga=388&profil=T2&id=T2871381&habilitation=L&matricule=1137640&page=/QFCNAFType1.jsp"
+CAF_MENU = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletMenuProfil"
+CAF_PROFILE = "https://wwwd.caf.fr/wpr-cafpro-web/PrincipalHautT2.jsp"
+CAF_ACCESS = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletAccesRubrique"
+CAF_QF = (1, "/QFCNAFType1.jsp")
+CAF_CHILDREN = (2, "/EnfantAutPersType1.jsp")
+CAF_ADDRESS = (3, "/AdresseType1.jsp")
+
 USERNAME, PASSWORD = eval(file(os.path.join(os.path.dirname(__file__), "caf.passwd")).read())
 REFERER = "https://wwwd.caf.fr/wpr-cafpro-web/Ident.jsp"
-MATRICULE = "1137640"
+try:
+  MATRICULE = sys.argv[1]
+except:
+  MATRICULE = "1137640"
 
-s = requests.Session()
-s.headers.update({'referer': REFERER})
-r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
+locale.setlocale(locale.LC_NUMERIC, 'fr_FR.UTF-8')
 
-print r.status_code, r.reason
-print r.text
+with requests.Session() as s:
+  s.headers.update({'referer': REFERER})
+  r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
 
-rr = s.get(CAF_PROFIL, params={"cleMatricule": MATRICULE, "Form":"Consulter"})
+  #print r.status_code, r.reason
+  #print r.text
 
-print rr.status_code, rr.reason
-print rr.text
+  rr = s.get(CAF_MENU, params={"cleMatricule": MATRICULE, "Form":"Consulter"})
 
-qf_params = urlparse.parse_qs(urlparse.urlparse(rr.request.url).query)
-print qf_params 
-qf_params.update({"numRubrique": 1, "habilitation":"L", "page":"/QFCNAFType1.jsp"})
-rrr = s.get(CAF_QF, params=qf_params)
+  #print rr.status_code, rr.reason
+  #print rr.text
 
-print rrr.status_code, rrr.reason
-print rrr.text
+  params = urlparse.parse_qs(urlparse.urlparse(rr.request.url).query)
 
-result = rrr.text
+  rr = s.get(CAF_PROFILE)
 
-soup = BeautifulSoup(result, 'html.parser')
+  soup = BeautifulSoup(rr.text, "lxml")
 
-for td in soup.find_all("td"):
-  if "QF :" in td.text:
-    break
+  parents = [] 
+  for p in [x.text.strip() for x in soup.find_all("b", string=lambda s: any(["Madame" in str(s), "Monsieur" in str(s)]))]:
+    if "responsable" in p:
+      parents.insert(0, re.search("[A-Z\s]+"*2, p).group().strip())
+    else:
+      parents.append(re.search("[A-Z\s]+"*2, p).group().strip())
 
-setlocale(LC_NUMERIC, 'fr_FR.UTF-8')
+  print parents
 
-x = atof(re.search("\d+\,\d{2}", td.text.split(':')[-1]).group())
+  nr, page = CAF_QF
+  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+  rrr = s.get(CAF_ACCESS, params=params)
 
-print x
+  result = rrr.text
+
+  soup = BeautifulSoup(result, 'lxml')
+
+  for td in soup.find_all("td"):
+    if "QF :" in td.text:
+      break
+
+
+  x = locale.atof(re.search("\d+\,\d{2}", td.text.split(':')[-1]).group())
+
+  print x
+
+  nr, page = CAF_ADDRESS
+  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+  rrrr = s.get(CAF_ACCESS, params=params)
+
+  soup = BeautifulSoup(rrrr.text, 'lxml')
+
+  address = [soup.find(property='voie').find("td").text.strip(),
+             soup.find(property='lieuDit').find("td").text.strip(),
+             soup.find(property='codePostLocalite').find("td").text.strip()]
+
+  print "\n".join(address)
+
+  nr, page = CAF_CHILDREN
+  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+  rrrrr = s.get(CAF_ACCESS, params=params)
+
+  soup = BeautifulSoup(rrrrr.text, "lxml")
+  children_nodes = [x.parent for x in soup.find_all("td", string=lambda s: re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", s) if s else False)]
+  children = []
+  for child_node in children_nodes:
+    children.append(filter(None, [x.text.strip()  for x in child_node.find_all("td")]))
+    child = children[-1]
+    child[-1] = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", child[-1]).group()
+  print children
+
 
