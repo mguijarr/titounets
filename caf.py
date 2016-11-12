@@ -5,7 +5,8 @@ from bs4 import BeautifulSoup
 import locale
 import re
 import sys
-
+import dateutil.parser as dateparser
+ 
 CAF_URL = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletAccesCAFPro"
 CAF_MENU = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletMenuProfil"
 CAF_PROFILE = "https://wwwd.caf.fr/wpr-cafpro-web/PrincipalHautT2.jsp"
@@ -23,73 +24,83 @@ except:
 
 locale.setlocale(locale.LC_NUMERIC, 'fr_FR.UTF-8')
 
-with requests.Session() as s:
-  s.headers.update({'referer': REFERER})
-  r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
+def get_data(matricule):
+  result = dict()
 
-  #print r.status_code, r.reason
-  #print r.text
+  with requests.Session() as s:
+    s.headers.update({'referer': REFERER})
+    r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
 
-  rr = s.get(CAF_MENU, params={"cleMatricule": MATRICULE, "Form":"Consulter"})
+    #print r.status_code, r.reason
+    #print r.text
 
-  #print rr.status_code, rr.reason
-  #print rr.text
+    rr = s.get(CAF_MENU, params={"cleMatricule": matricule, "Form":"Consulter"})
 
-  params = urlparse.parse_qs(urlparse.urlparse(rr.request.url).query)
+    #print rr.status_code, rr.reason
+    #print rr.text
 
-  rr = s.get(CAF_PROFILE)
+    params = urlparse.parse_qs(urlparse.urlparse(rr.request.url).query)
 
-  soup = BeautifulSoup(rr.text, "lxml")
+    rr = s.get(CAF_PROFILE)
 
-  parents = [] 
-  for p in [x.text.strip() for x in soup.find_all("b", string=lambda s: any(["Madame" in str(s), "Monsieur" in str(s)]))]:
-    if "responsable" in p:
-      parents.insert(0, re.search("[A-Z\s]+"*2, p).group().strip())
-    else:
-      parents.append(re.search("[A-Z\s]+"*2, p).group().strip())
+    soup = BeautifulSoup(rr.text, "lxml")
 
-  print parents
+    parents = [] 
+    for p in [x.text.strip() for x in soup.find_all("b", string=lambda s: any(["Madame" in str(s), "Monsieur" in str(s)]))]:
+      if "responsable" in p:
+        parents.insert(0, re.search("[A-Z\s]+"*2, p).group().strip())
+      else:
+        parents.append(re.search("[A-Z\s]+"*2, p).group().strip())
 
-  nr, page = CAF_QF
-  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
-  rrr = s.get(CAF_ACCESS, params=params)
+    result["parents"] = parents
 
-  result = rrr.text
+    nr, page = CAF_QF
+    params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+    rrr = s.get(CAF_ACCESS, params=params)
 
-  soup = BeautifulSoup(result, 'lxml')
+    soup = BeautifulSoup(rrr.text, 'lxml')
 
-  for td in soup.find_all("td"):
-    if "QF :" in td.text:
-      break
+    for td in soup.find_all("td"):
+      if "QF :" in td.text:
+        break
 
+    x = locale.atof(re.search("\d+\,\d{2}", td.text.split(':')[-1]).group())
 
-  x = locale.atof(re.search("\d+\,\d{2}", td.text.split(':')[-1]).group())
+    result['qf'] = x
 
-  print x
+    nr, page = CAF_ADDRESS
+    params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+    rrrr = s.get(CAF_ACCESS, params=params)
 
-  nr, page = CAF_ADDRESS
-  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
-  rrrr = s.get(CAF_ACCESS, params=params)
+    soup = BeautifulSoup(rrrr.text, 'lxml')
 
-  soup = BeautifulSoup(rrrr.text, 'lxml')
+    address = [soup.find(property='voie').find("td").text.strip(),
+               soup.find(property='lieuDit').find("td").text.strip(),
+               soup.find(property='codePostLocalite').find("td").text.strip()]
 
-  address = [soup.find(property='voie').find("td").text.strip(),
-             soup.find(property='lieuDit').find("td").text.strip(),
-             soup.find(property='codePostLocalite').find("td").text.strip()]
+    result['address'] = { "address1": address[0],
+                          "address2": address[1],
+                          "cp": address[2].split(' ')[0],
+                          "city": ' '.join(address[2].split(' ')[1:]) }
 
-  print "\n".join(address)
+    nr, page = CAF_CHILDREN
+    params.update({"numRubrique": nr, "habilitation":"L", "page":page})
+    rrrrr = s.get(CAF_ACCESS, params=params)
 
-  nr, page = CAF_CHILDREN
-  params.update({"numRubrique": nr, "habilitation":"L", "page":page})
-  rrrrr = s.get(CAF_ACCESS, params=params)
+    soup = BeautifulSoup(rrrrr.text, "lxml")
+    children_nodes = [x.parent for x in soup.find_all("td", string=lambda s: re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", s) if s else False)]
+    children = []
+    for child_node in children_nodes:
+      surname, name, birthdate = filter(None, [x.text.strip()  for x in child_node.find_all("td")])
+      birthdate = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", birthdate).group()
+      birthdate = dateparser.parse(birthdate).isoformat()
+      children.append({"surname": surname, "name": name, "birthdate": birthdate });
+    
+    result['children'] = children
 
-  soup = BeautifulSoup(rrrrr.text, "lxml")
-  children_nodes = [x.parent for x in soup.find_all("td", string=lambda s: re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", s) if s else False)]
-  children = []
-  for child_node in children_nodes:
-    children.append(filter(None, [x.text.strip()  for x in child_node.find_all("td")]))
-    child = children[-1]
-    child[-1] = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", child[-1]).group()
-  print children
+  return result
+
+if __name__ == '__main__':
+  print get_data(MATRICULE)
 
 

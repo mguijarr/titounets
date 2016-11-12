@@ -42,8 +42,7 @@ System.config({
       "react-bootstrap",
       "react-router-bootstrap",
       "./login",
-      "bootstrap/css/bootstrap.css!",
-      "./App.css!"
+      "bootstrap/css/bootstrap.css!"
     ],
     "lib/Home.js": [
       "babel-runtime/helpers/get",
@@ -3291,6 +3290,7 @@ System.config({
     "react-router-bootstrap": "npm:react-router-bootstrap@0.23.1",
     "react-router-scroll": "npm:react-router-scroll@0.4.1",
     "react-yearly-calendar": "npm:react-yearly-calendar@1.1.4",
+    "whatwg-fetch": "npm:whatwg-fetch@1.0.0",
     "github:jspm/nodelibs-assert@0.1.0": {
       "assert": "npm:assert@1.4.1"
     },

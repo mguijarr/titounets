@@ -1,7 +1,8 @@
 from flask import Flask, session, request, jsonify
-from flask.ext.session import Session
+from flask_session import Session
 import redis
 import os
+import caf
 
 password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
@@ -30,6 +31,15 @@ def login():
 
     return jsonify({ 'success': logged_in })
 
+
+@app.route("/caf", methods=["POST"])
+def retrieve_caf_data():
+  content = request.get_json()
+  caf_id = content['id']
+
+  result = caf.get_data(caf_id)
+
+  return jsonify(result)
 
 
 if __name__ == '__main__':
