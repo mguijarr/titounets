@@ -6,6 +6,19 @@ import locale
 import re
 import sys
 import dateutil.parser as dateparser
+import time
+
+"""import logging
+import httplib
+
+# Debug logging
+httplib.HTTPConnection.debuglevel = 1
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
+req_log = logging.getLogger('requests.packages.urllib3')
+req_log.setLevel(logging.DEBUG)
+req_log.propagate = True
+"""
  
 CAF_URL = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletAccesCAFPro"
 CAF_MENU = "https://wwwd.caf.fr/wpr-cafpro-web/servlet/ServletMenuProfil"
@@ -31,17 +44,19 @@ def get_data(matricule):
     s.headers.update({'referer': REFERER})
     r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
 
-    #print r.status_code, r.reason
-    #print r.text
+    time.sleep(0.1) 
 
     rr = s.get(CAF_MENU, params={"cleMatricule": matricule, "Form":"Consulter"})
 
+    time.sleep(0.1) 
     #print rr.status_code, rr.reason
     #print rr.text
 
     params = urlparse.parse_qs(urlparse.urlparse(rr.request.url).query)
 
     rr = s.get(CAF_PROFILE)
+    
+    time.sleep(0.1) 
 
     soup = BeautifulSoup(rr.text, "lxml")
 
@@ -58,6 +73,10 @@ def get_data(matricule):
     params.update({"numRubrique": nr, "habilitation":"L", "page":page})
     rrr = s.get(CAF_ACCESS, params=params)
 
+    #print rrr.status_code, rrr.reason
+    #print rrr.text
+    time.sleep(0.1) 
+
     soup = BeautifulSoup(rrr.text, 'lxml')
 
     for td in soup.find_all("td"):
@@ -71,6 +90,7 @@ def get_data(matricule):
     nr, page = CAF_ADDRESS
     params.update({"numRubrique": nr, "habilitation":"L", "page":page})
     rrrr = s.get(CAF_ACCESS, params=params)
+    time.sleep(0.1) 
 
     soup = BeautifulSoup(rrrr.text, 'lxml')
 
@@ -78,9 +98,8 @@ def get_data(matricule):
                soup.find(property='lieuDit').find("td").text.strip(),
                soup.find(property='codePostLocalite').find("td").text.strip()]
 
-    result['address'] = { "address1": address[0],
-                          "address2": address[1],
-                          "cp": address[2].split(' ')[0],
+    result['address'] = { "street": address[0:2],
+                          "zip": address[2].split(' ')[0],
                           "city": ' '.join(address[2].split(' ')[1:]) }
 
     nr, page = CAF_CHILDREN

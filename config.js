@@ -3279,6 +3279,7 @@ System.config({
     "bootstrap": "github:twbs/bootstrap@3.3.7",
     "core-js": "npm:core-js@1.2.7",
     "css": "github:systemjs/plugin-css@0.1.32",
+    "isomorphic-fetch": "npm:isomorphic-fetch@2.2.1",
     "moment": "npm:moment@2.15.2",
     "moment-range": "npm:moment-range@2.2.0",
     "react": "npm:react@15.3.2",
@@ -3290,7 +3291,6 @@ System.config({
     "react-router-bootstrap": "npm:react-router-bootstrap@0.23.1",
     "react-router-scroll": "npm:react-router-scroll@0.4.1",
     "react-yearly-calendar": "npm:react-yearly-calendar@1.1.4",
-    "whatwg-fetch": "npm:whatwg-fetch@1.0.0",
     "github:jspm/nodelibs-assert@0.1.0": {
       "assert": "npm:assert@1.4.1"
     },
@@ -3363,7 +3363,7 @@ System.config({
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
       "pako": "npm:pako@0.2.9",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "readable-stream": "npm:readable-stream@2.1.5",
+      "readable-stream": "npm:readable-stream@2.2.1",
       "util": "github:jspm/nodelibs-util@0.1.0"
     },
     "npm:buffer-shims@1.0.0": {
@@ -3564,7 +3564,7 @@ System.config({
       "stream-browserify": "npm:stream-browserify@1.0.0",
       "string_decoder": "npm:string_decoder@0.10.31"
     },
-    "npm:readable-stream@2.1.5": {
+    "npm:readable-stream@2.2.1": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
       "buffer-shims": "npm:buffer-shims@1.0.0",
       "core-util-is": "npm:core-util-is@1.0.2",
