@@ -6,7 +6,6 @@ import locale
 import re
 import sys
 import dateutil.parser as dateparser
-import time
 
 """import logging
 import httplib
@@ -44,11 +43,8 @@ def get_data(matricule):
     s.headers.update({'referer': REFERER})
     r = s.post(CAF_URL, data={"id": USERNAME, "password": PASSWORD, "valid": "Valider", "modeAcces":"connexion"})
 
-    time.sleep(0.1) 
-
     rr = s.get(CAF_MENU, params={"cleMatricule": matricule, "Form":"Consulter"})
 
-    time.sleep(0.1) 
     #print rr.status_code, rr.reason
     #print rr.text
 
@@ -56,8 +52,6 @@ def get_data(matricule):
 
     rr = s.get(CAF_PROFILE)
     
-    time.sleep(0.1) 
-
     soup = BeautifulSoup(rr.text, "lxml")
 
     parents = [] 
@@ -75,8 +69,6 @@ def get_data(matricule):
 
     #print rrr.status_code, rrr.reason
     #print rrr.text
-    time.sleep(0.1) 
-
     soup = BeautifulSoup(rrr.text, 'lxml')
 
     for td in soup.find_all("td"):
@@ -90,7 +82,6 @@ def get_data(matricule):
     nr, page = CAF_ADDRESS
     params.update({"numRubrique": nr, "habilitation":"L", "page":page})
     rrrr = s.get(CAF_ACCESS, params=params)
-    time.sleep(0.1) 
 
     soup = BeautifulSoup(rrrr.text, 'lxml')
 

@@ -27,14 +27,9 @@ def login():
     passwd_hash = db.hget(username, "password")
     logged_in = passwd_hash == bcrypt.hashpw(password, passwd_hash)
 
-    return jsonify({ 'success': logged_in, "admin": db.hget(username, "admin") == 'True', "id": username })
+    return jsonify({ 'success': logged_in, "admin": db.hget(username, "admin") == 'True' })
 
-@app.route('/families', methods=["GET"])
-def get_families():
-    pass
-
-@app.route('/family/<int:username>', methods=["GET"])
-def get_family(username):
+def extract_family_data(username):
     family = db.hgetall(username)
 
     for k in db.keys("%s:children:*" % username):
@@ -44,8 +39,25 @@ def get_family(username):
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
                           "city": family.pop("city"),
                           "zip": family.pop("zip") }
-                          
-    return jsonify(family)
+    family['parents'] = [family.pop('parent1'), family.pop('parent2')]
+
+    return family
+
+@app.route('/families', methods=["GET"])
+def get_families():
+    families = []
+
+    for k in db.keys('*'):
+      if k == 'admin':
+        continue
+      if not ':children:' in k:
+        families.append(extract_family_data(k))
+
+    return jsonify(families)
+
+@app.route('/family/<int:username>', methods=["GET"])
+def get_family(username):
+    return jsonify(extract_family_data(username))
 
 @app.route("/save", methods=["POST"])
 def save():
@@ -82,6 +94,7 @@ def save():
         p.hset(username, "city", city)
         p.hset(username, "phone_number", phone_number)
         p.hset(username, "qf", qf)
+        p.hset(username, "id", username)
         for i, child_data in enumerate(children):
           key = "%s:children:%d" % (username, i) 
           p.hset(key, "name", child_data["name"])
