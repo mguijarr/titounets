@@ -32,8 +32,9 @@ def login():
 def extract_family_data(username):
     family = db.hgetall(username)
 
+    family["children"] = []
     for k in db.keys("%s:children:*" % username):
-        family.setdefault("children", []).append(db.hgetall(k))
+        family["children"].append(db.hgetall(k))
 
     family.pop("password")
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
