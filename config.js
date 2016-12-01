@@ -42,7 +42,8 @@ System.config({
       "react-bootstrap",
       "react-router-bootstrap",
       "./login",
-      "bootstrap/css/bootstrap.css!"
+      "bootstrap/css/bootstrap.css!",
+      "./auth"
     ],
     "lib/Home.js": [
       "babel-runtime/helpers/get",
@@ -56,11 +57,14 @@ System.config({
       "babel-runtime/helpers/inherits",
       "babel-runtime/helpers/create-class",
       "babel-runtime/helpers/class-call-check",
+      "babel-runtime/helpers/extends",
+      "babel-runtime/helpers/define-property",
       "react",
       "react-dom",
       "react-bootstrap",
       "./child.js",
-      "./data.js"
+      "./auth",
+      "isomorphic-fetch"
     ],
     "lib/GestionContrat.js": [
       "babel-runtime/helpers/get",
@@ -3270,6 +3274,41 @@ System.config({
     ],
     "npm:core-js@2.4.1/library/modules/_to-index.js": [
       "./_to-integer"
+    ],
+    "lib/auth.js": [
+      "isomorphic-fetch"
+    ],
+    "npm:isomorphic-fetch@2.2.1.js": [
+      "npm:isomorphic-fetch@2.2.1/fetch-npm-browserify.js"
+    ],
+    "npm:babel-runtime@5.8.38/helpers/define-property.js": [
+      "../core-js/object/define-property"
+    ],
+    "npm:babel-runtime@5.8.38/helpers/extends.js": [
+      "../core-js/object/assign"
+    ],
+    "npm:isomorphic-fetch@2.2.1/fetch-npm-browserify.js": [
+      "whatwg-fetch"
+    ],
+    "npm:babel-runtime@5.8.38/core-js/object/assign.js": [
+      "core-js/library/fn/object/assign"
+    ],
+    "npm:whatwg-fetch@1.0.0.js": [
+      "npm:whatwg-fetch@1.0.0/fetch.js"
+    ],
+    "npm:core-js@1.2.7/library/fn/object/assign.js": [
+      "../../modules/es6.object.assign",
+      "../../modules/$.core"
+    ],
+    "npm:core-js@1.2.7/library/modules/es6.object.assign.js": [
+      "./$.export",
+      "./$.object-assign"
+    ],
+    "npm:core-js@1.2.7/library/modules/$.object-assign.js": [
+      "./$",
+      "./$.to-object",
+      "./$.iobject",
+      "./$.fails"
     ]
   },
 
@@ -3277,16 +3316,18 @@ System.config({
     "babel": "npm:babel-core@5.8.38",
     "babel-runtime": "npm:babel-runtime@5.8.38",
     "bootstrap": "github:twbs/bootstrap@3.3.7",
+    "bootstrap-slider": "npm:bootstrap-slider@9.5.2",
     "core-js": "npm:core-js@1.2.7",
     "css": "github:systemjs/plugin-css@0.1.32",
     "isomorphic-fetch": "npm:isomorphic-fetch@2.2.1",
     "moment": "npm:moment@2.15.2",
     "moment-range": "npm:moment-range@2.2.0",
-    "react": "npm:react@15.3.2",
+    "react": "npm:react@15.4.1",
     "react-bootstrap": "npm:react-bootstrap@0.30.6",
     "react-bootstrap-date-picker": "npm:react-bootstrap-date-picker@3.7.0",
+    "react-bootstrap-slider": "npm:react-bootstrap-slider@1.1.3",
     "react-bootstrap-time-picker": "npm:react-bootstrap-time-picker@1.0.1",
-    "react-dom": "npm:react-dom@15.3.2",
+    "react-dom": "npm:react-dom@15.4.1",
     "react-router": "npm:react-router@3.0.0",
     "react-router-bootstrap": "npm:react-router-bootstrap@0.23.1",
     "react-router-scroll": "npm:react-router-scroll@0.4.1",
@@ -3358,12 +3399,20 @@ System.config({
       "core-js": "npm:core-js@2.4.1",
       "regenerator-runtime": "npm:regenerator-runtime@0.9.6"
     },
+    "npm:bootstrap-slider@9.5.2": {
+      "process": "github:jspm/nodelibs-process@0.1.2"
+    },
+    "npm:bootstrap@3.3.7": {
+      "fs": "github:jspm/nodelibs-fs@0.1.2",
+      "path": "github:jspm/nodelibs-path@0.1.0",
+      "process": "github:jspm/nodelibs-process@0.1.2"
+    },
     "npm:browserify-zlib@0.1.4": {
       "assert": "github:jspm/nodelibs-assert@0.1.0",
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
       "pako": "npm:pako@0.2.9",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "readable-stream": "npm:readable-stream@2.2.1",
+      "readable-stream": "npm:readable-stream@2.2.2",
       "util": "github:jspm/nodelibs-util@0.1.0"
     },
     "npm:buffer-shims@1.0.0": {
@@ -3397,17 +3446,16 @@ System.config({
     },
     "npm:encoding@0.1.12": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
-      "iconv-lite": "npm:iconv-lite@0.4.13"
+      "iconv-lite": "npm:iconv-lite@0.4.15"
     },
-    "npm:fbjs@0.8.5": {
+    "npm:fbjs@0.8.6": {
       "core-js": "npm:core-js@1.2.7",
-      "immutable": "npm:immutable@3.8.1",
       "isomorphic-fetch": "npm:isomorphic-fetch@2.2.1",
       "loose-envify": "npm:loose-envify@1.3.0",
       "object-assign": "npm:object-assign@4.1.0",
       "process": "github:jspm/nodelibs-process@0.1.2",
       "promise": "npm:promise@7.1.1",
-      "ua-parser-js": "npm:ua-parser-js@0.7.11"
+      "ua-parser-js": "npm:ua-parser-js@0.7.12"
     },
     "npm:history@3.2.1": {
       "invariant": "npm:invariant@2.2.1",
@@ -3419,7 +3467,7 @@ System.config({
     "npm:https-browserify@0.0.0": {
       "http": "github:jspm/nodelibs-http@1.7.1"
     },
-    "npm:iconv-lite@0.4.13": {
+    "npm:iconv-lite@0.4.15": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
       "process": "github:jspm/nodelibs-process@0.1.2",
       "stream": "github:jspm/nodelibs-stream@0.1.0",
@@ -3435,7 +3483,7 @@ System.config({
     },
     "npm:isomorphic-fetch@2.2.1": {
       "node-fetch": "npm:node-fetch@1.6.3",
-      "whatwg-fetch": "npm:whatwg-fetch@1.0.0"
+      "whatwg-fetch": "npm:whatwg-fetch@2.0.1"
     },
     "npm:loose-envify@1.3.0": {
       "fs": "github:jspm/nodelibs-fs@0.1.2",
@@ -3485,13 +3533,22 @@ System.config({
       "strict-uri-encode": "npm:strict-uri-encode@1.1.0"
     },
     "npm:react-bootstrap-date-picker@3.7.0": {
-      "react": "npm:react@15.3.2",
+      "react": "npm:react@15.4.1",
       "react-bootstrap": "npm:react-bootstrap@0.30.6"
     },
+    "npm:react-bootstrap-slider@1.1.3": {
+      "bootstrap": "npm:bootstrap@3.3.7",
+      "bootstrap-slider": "npm:bootstrap-slider@9.5.2",
+      "es6bindall": "npm:es6bindall@0.0.9",
+      "fs": "github:jspm/nodelibs-fs@0.1.2",
+      "jquery": "npm:jquery@3.1.1",
+      "react": "npm:react@15.4.1",
+      "react-dom": "npm:react-dom@15.4.1"
+    },
     "npm:react-bootstrap-time-picker@1.0.1": {
-      "react": "npm:react@15.3.2",
+      "react": "npm:react@15.4.1",
       "react-bootstrap": "npm:react-bootstrap@0.30.6",
-      "react-dom": "npm:react-dom@15.3.2",
+      "react-dom": "npm:react-dom@15.4.1",
       "time-number": "npm:time-number@1.0.0"
     },
     "npm:react-bootstrap@0.30.6": {
@@ -3501,36 +3558,40 @@ System.config({
       "invariant": "npm:invariant@2.2.1",
       "keycode": "npm:keycode@2.1.7",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "react": "npm:react@15.3.2",
-      "react-dom": "npm:react-dom@15.3.2",
+      "react": "npm:react@15.4.1",
+      "react-dom": "npm:react-dom@15.4.1",
       "react-overlays": "npm:react-overlays@0.6.10",
       "react-prop-types": "npm:react-prop-types@0.4.0",
       "uncontrollable": "npm:uncontrollable@4.0.3",
       "warning": "npm:warning@3.0.0"
     },
-    "npm:react-dom@15.3.2": {
-      "react": "npm:react@15.3.2"
+    "npm:react-dom@15.4.1": {
+      "fbjs": "npm:fbjs@0.8.6",
+      "loose-envify": "npm:loose-envify@1.3.0",
+      "object-assign": "npm:object-assign@4.1.0",
+      "process": "github:jspm/nodelibs-process@0.1.2",
+      "react": "npm:react@15.4.1"
     },
     "npm:react-overlays@0.6.10": {
       "classnames": "npm:classnames@2.2.5",
       "dom-helpers": "npm:dom-helpers@2.4.0",
-      "react": "npm:react@15.3.2",
-      "react-dom": "npm:react-dom@15.3.2",
+      "react": "npm:react@15.4.1",
+      "react-dom": "npm:react-dom@15.4.1",
       "react-prop-types": "npm:react-prop-types@0.4.0",
       "warning": "npm:warning@3.0.0"
     },
     "npm:react-prop-types@0.4.0": {
-      "react": "npm:react@15.3.2",
+      "react": "npm:react@15.4.1",
       "warning": "npm:warning@3.0.0"
     },
     "npm:react-router-bootstrap@0.23.1": {
-      "react": "npm:react@15.3.2"
+      "react": "npm:react@15.4.1"
     },
     "npm:react-router-scroll@0.4.1": {
       "history": "npm:history@3.2.1",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "react": "npm:react@15.3.2",
-      "react-dom": "npm:react-dom@15.3.2",
+      "react": "npm:react@15.4.1",
+      "react-dom": "npm:react-dom@15.4.1",
       "react-router": "npm:react-router@3.0.0",
       "scroll-behavior": "npm:scroll-behavior@0.9.1",
       "warning": "npm:warning@3.0.0"
@@ -3541,15 +3602,15 @@ System.config({
       "invariant": "npm:invariant@2.2.1",
       "loose-envify": "npm:loose-envify@1.3.0",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "react": "npm:react@15.3.2",
+      "react": "npm:react@15.4.1",
       "warning": "npm:warning@3.0.0"
     },
     "npm:react-yearly-calendar@1.1.4": {
       "moment": "npm:moment@2.15.2",
-      "react": "npm:react@15.3.2"
+      "react": "npm:react@15.4.1"
     },
-    "npm:react@15.3.2": {
-      "fbjs": "npm:fbjs@0.8.5",
+    "npm:react@15.4.1": {
+      "fbjs": "npm:fbjs@0.8.6",
       "loose-envify": "npm:loose-envify@1.3.0",
       "object-assign": "npm:object-assign@4.1.0",
       "process": "github:jspm/nodelibs-process@0.1.2"
@@ -3564,7 +3625,7 @@ System.config({
       "stream-browserify": "npm:stream-browserify@1.0.0",
       "string_decoder": "npm:string_decoder@0.10.31"
     },
-    "npm:readable-stream@2.2.1": {
+    "npm:readable-stream@2.2.2": {
       "buffer": "github:jspm/nodelibs-buffer@0.1.0",
       "buffer-shims": "npm:buffer-shims@1.0.0",
       "core-util-is": "npm:core-util-is@1.0.2",
@@ -3597,13 +3658,13 @@ System.config({
       "path": "github:jspm/nodelibs-path@0.1.0",
       "process": "github:jspm/nodelibs-process@0.1.2"
     },
-    "npm:ua-parser-js@0.7.11": {
+    "npm:ua-parser-js@0.7.12": {
       "systemjs-json": "github:systemjs/plugin-json@0.1.2"
     },
     "npm:uncontrollable@4.0.3": {
       "invariant": "npm:invariant@2.2.1",
       "process": "github:jspm/nodelibs-process@0.1.2",
-      "react": "npm:react@15.3.2"
+      "react": "npm:react@15.4.1"
     },
     "npm:url@0.10.3": {
       "assert": "github:jspm/nodelibs-assert@0.1.0",
