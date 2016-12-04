@@ -4,6 +4,8 @@ import redis
 import os
 import caf
 import bcrypt
+from holidays import get_holidays
+import json
 
 password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
@@ -17,6 +19,10 @@ Session(app)
 @app.route("/")
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/holidays')
+def holidays():
+    return jsonify(get_holidays())
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -43,6 +49,8 @@ def extract_family_data(username):
 
     family["children"] = []
     for k in db.keys("%s:children:*" % username):
+        if 'periods' in k:
+            continue
         family["children"].append(db.hgetall(k))
 
     family.pop("password")
@@ -91,7 +99,38 @@ def get_children():
       children.append({ "surname": child[0], "name": child[1], "id": child[2] })
     
     return jsonify(children)   
-    
+
+@app.route("/periods/<int:username>", methods=["GET"])
+def get_children_periods(username):
+    if session['admin'] or int(session["username"]) == username:
+        family = extract_family_data(username)
+        res = list()
+        for c in family['children']:
+           key = "%d:children:%s:periods" % (username, c["name"])
+           res.append({ "name": c["name"], "periods": map(json.loads, db.lrange(key, 0, -1)) or [] })
+
+        return jsonify(res)
+    else:
+        return make_response("", 401)
+
+@app.route("/periods/<int:username>", methods=["POST"])
+def set_children_periods(username):
+    if session['admin'] or int(session["username"]) == username:
+        periods = request.get_json()
+        for p in periods:
+           key = "%d:children:%s:periods" % (username, p["name"])
+           plist = map(json.dumps, p["periods"])
+           print p["name"], p["periods"]
+           with db.pipeline() as P:
+               P.delete(key)
+               if plist:
+                   P.rpush(key, *plist)
+               P.execute()
+
+        return make_response("", 200) 
+    else:
+        return make_response("", 401)
+   
 @app.route('/delfamily', methods=["POST"])
 def del_family():
     if not session['admin']:
