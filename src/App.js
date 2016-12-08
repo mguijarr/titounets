@@ -2,7 +2,7 @@ import React from 'react';
 import { Navbar, Nav, NavItem, NavDropdown, MenuItem, Button } from 'react-bootstrap';
 import { LinkContainer } from 'react-router-bootstrap';
 import LoginForm from './login';
-import 'bootstrap/css/bootstrap.min.css!';
+//import 'bootstrap/dist/css/bootstrap.min.css!';
 import auth from './auth';
 
 export default class App extends React.Component { // eslint-disable-line react/prefer-stateless-function

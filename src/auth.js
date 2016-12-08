@@ -1,4 +1,3 @@
-import 'isomorphic-fetch';
 import { checkStatus, parseJSON } from './utils';
 
 export default {

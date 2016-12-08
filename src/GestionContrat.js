@@ -1,12 +1,11 @@
 import React from 'react';
 import moment from 'moment';
 import 'moment-range';
-import 'moment/locale/fr';
+//import 'moment/locale/fr';
 import { Calendar, CalendarControls } from 'react-yearly-calendar';
 import { Grid, Row, Col, Overlay, Popover, Button, Checkbox, Label, Glyphicon, Panel, Modal } from 'react-bootstrap';
 import TimePicker from 'react-bootstrap-time-picker';
-import './GestionContrat.css!';
-import 'isomorphic-fetch';
+import './css/GestionContrat.css!';
 import auth from './auth';
 import { checkStatus, parseJSON } from './utils';
 

@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "react-cdn": {
+      "build": false
+    },
+    "react-dom-cdn": {
+      "build": false
+    },
+    "react-bootstrap-cdn": {
+      "build": false
+    },
+    "react-router-cdn": {
+      "build": false
+    },
+    "react-router-bootstrap-cdn": {
+      "build": false
+    },
+    "bootstrap-cdn": {
+      "build": false
+    },
+    "bootstrap-css-cdn": {
+      "build": false
+    },
+    "moment-cdn": {
+      "build": false
+    },
+    "moment-range-cdn": {
+      "build": false
+    }
+  }
+}
+

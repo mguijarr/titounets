@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox } from 'react-bootstrap';
 import ChildData from './child.js';
 import auth from './auth';
-import 'isomorphic-fetch';
 import { checkStatus, parseJSON } from './utils';
 
 class TextInput extends React.Component {
