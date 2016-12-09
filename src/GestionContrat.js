@@ -1,9 +1,9 @@
 import React from 'react';
 import moment from 'moment';
 import 'moment-range';
-//import 'moment/locale/fr';
+import 'moment/locale/fr';
 import { Calendar, CalendarControls } from 'react-yearly-calendar';
-import { Grid, Row, Col, Overlay, Popover, Button, Checkbox, Label, Glyphicon, Panel, Modal } from 'react-bootstrap';
+import { Grid, Row, Col, Overlay, Popover, Button, Checkbox, Label, Glyphicon, Panel, Modal, DropdownButton, MenuItem } from 'react-bootstrap';
 import TimePicker from 'react-bootstrap-time-picker';
 import './css/GestionContrat.css!';
 import auth from './auth';
@@ -19,7 +19,10 @@ export default class GestionContrat extends React.Component { // eslint-disable-
                    current_start_time: undefined,
                    current_end_time: undefined,
                    checked: {},
-                   periods: []
+                   periods: [],
+                   familyId: -1,
+                   family: {},
+                   families: []
                  };
    
     this.dayCheckbox = [null, null, null, null, null];
@@ -27,6 +30,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.addPeriod = this.addPeriod.bind(this);
     this.changePeriod = this.changePeriod.bind(this);
     this.savePeriods = this.savePeriods.bind(this);
+    this.getPeriods = this.getPeriods.bind(this);
     this.chilClicked = this.childClicked.bind(this);
     this.checkChildForDay = this.checkChildForDay.bind(this);
     this.isWeekend = this.isWeekend.bind(this);
@@ -37,6 +41,21 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.handleStartTimeChange = this.handleStartTimeChange.bind(this);
     this.handleEndTimeChange = this.handleEndTimeChange.bind(this);
     this.findDays = this.findDays.bind(this);
+    this.familySelected = this.familySelected.bind(this);
+  }
+
+  getPeriods(familyId) {
+    fetch("/periods/"+familyId, {
+        method: "GET",
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      }).then(checkStatus).then(parseJSON).then((res) => {
+        const checked = {};
+        res.forEach((c) => { checked[c.name]=true; c.periods.forEach((p, i) => { c.periods[i]=moment.range(p.start, p.end); }) });
+        this.setState({ checked, periods: res });
+      });
   }
 
   componentWillMount() {
@@ -55,19 +74,29 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         this.setState({ holidays: res });
     });
 
-    if (auth.loggedIn()) {
-      fetch("/periods/"+auth.familyId(), {
-        method: "GET",
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include'
+    if (auth.admin()) {
+      // get all families
+      fetch("/families", {
+            method: "GET",
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
       }).then(checkStatus).then(parseJSON).then((res) => {
-        const checked = {};
-        res.forEach((c) => { checked[c.name]=true; c.periods.forEach((p, i) => { c.periods[i]=moment.range(p.start, p.end); }) }); 
-        this.setState({ checked, periods: res });
+            const family = {};
+            res.forEach((f)=>{ family[f.id]=f });
+            this.setState({ families: res, family });
       });
+    } else if (auth.loggedIn()) {
+      this.setState({familyId: auth.familyId()});
+
+      this.getPeriods(auth.familyId());
     }
+  }
+
+  familySelected(familyId) {
+    this.setState({familyId});
+    this.getPeriods(familyId);  
   }
 
   refinePeriods(periods) {
@@ -179,8 +208,8 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.addPeriod(child);
   }
 
-  savePeriods() {
-    fetch("/periods/"+auth.familyId(), {
+  savePeriods(familyId) {
+    fetch("/periods/"+familyId, {
         method: "POST",
         headers: {
             'Content-Type': 'application/json'
@@ -291,6 +320,16 @@ export default class GestionContrat extends React.Component { // eslint-disable-
 
     return (
       <Grid>
+        { auth.admin() ? (<Row>
+            <Col lg={1}>
+              <h4 style={{marginTop: '10px', marginBottom:'30px'}}>Famille:&nbsp;</h4>
+            </Col>
+            <Col lg={11}>
+              <DropdownButton title={ this.state.familyId >= 0 ? this.state.family[this.state.familyId].parents[0] + " ("+this.state.familyId+")" : "Liste"} key={1}>
+                {this.state.families.map((f, i) => { return <MenuItem eventKey={f.id} onSelect={this.familySelected}>{f.parents[0]+" ("+f.id+")"}</MenuItem> })}
+              </DropdownButton>
+            </Col>
+        </Row>) : "" }
         <Row>
           <Col xs={12}>
             <Calendar ref="cal" year={2016} firstDayOfWeek={0} selectRange selectedRange={this.state.current_range} onPickRange={this.onPickRange} customClasses={customCss} />
@@ -324,7 +363,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         <Row>
           <Col sm={12}>
             <div className="pull-right" style={{ marginTop: '15px', marginBottom: '15px' }}>
-              <Button bsStyle="primary"  onClick={this.savePeriods}>Valider contrat</Button>
+              <Button bsStyle="primary"  disabled={this.state.familyId < 0} onClick={()=>{ this.savePeriods(this.state.familyId) }}>Valider contrat</Button>
             </div>
           </Col>
         </Row>

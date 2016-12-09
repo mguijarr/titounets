@@ -23,14 +23,14 @@ export default class App extends React.Component { // eslint-disable-line react/
             <LinkContainer to="/infosperso">
               <NavItem eventKey={1}>{ auth.admin() ? "Familles" : "Données personnelles" }</NavItem>
             </LinkContainer>
+            <LinkContainer to="/gestioncontrat">
+                 <NavItem eventKey={2}>Gestion Contrat</NavItem>
+            </LinkContainer>
            { auth.admin() ?
               (<LinkContainer to="/horaires">
-                 <NavItem eventKey={2}>Horaires réalisés</NavItem>
+                 <NavItem eventKey={3}>Horaires réalisés</NavItem>
                </LinkContainer>
-              ) : 
-              (<LinkContainer to="/gestioncontrat">
-                 <NavItem eventKey={2}>Gestion Contrat</NavItem>
-               </LinkContainer>)
+              ) : "" 
            }
           </Nav>
           <Nav pullRight>

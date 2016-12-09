@@ -17,11 +17,13 @@ export default class Horaires extends React.Component { // eslint-disable-line r
     this.state = { children: [], opening_hours: [8,19], date: new Date().toISOString() };
 
     this.formatHour = this.formatHour.bind(this);
+    this.dateChanged = this.dateChanged.bind(this);
+    this.getChildrenList = this.getChildrenList.bind(this);
   }
 
-  componentWillMount() {
+  getChildrenList(date) {
     // get children list
-    fetch("/children", {
+    fetch("/children/"+date, {
         method: "GET",
         headers: {
           'Content-Type': 'application/json'
@@ -30,6 +32,10 @@ export default class Horaires extends React.Component { // eslint-disable-line r
     }).then(checkStatus).then(parseJSON).then((res) => {
         this.setState({ children: res });
     });
+  }
+
+  componentWillMount() {
+    this.getChildrenList(this.state.date); 
 
     // get opening hours
     fetch("/opening_hours", {
@@ -54,6 +60,11 @@ export default class Horaires extends React.Component { // eslint-disable-line r
     }
   }
 
+  dateChanged(isodate) {
+    this.setState({date: isodate});
+    this.getChildrenList(isodate);
+  }
+
   render() {
     const opening_hour = this.state.opening_hours[0]*60;
     const closing_hour = this.state.opening_hours[1]*60;
@@ -65,7 +76,7 @@ export default class Horaires extends React.Component { // eslint-disable-line r
             <DatePicker monthLabels={['Janvier','Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre']}
                         dayLabels={['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']} 
                         dateFormat="DD/MM/YYYY" 
-                        value={this.state.date} showClearButton={false}/>
+                        value={this.state.date} showClearButton={false} onChange={this.dateChanged}/>
           </Col>
         </Row>
         <Row><Col lg={12}>
@@ -76,7 +87,7 @@ export default class Horaires extends React.Component { // eslint-disable-line r
                       </Col>
                       <Col lg={5}>
                         <div style={{marginTop: '20px' }}>
-                          <ReactBootstrapSlider value={[opening_hour,opening_hour]} min={opening_hour} max={closing_hour} formatter={this.formatHour}/>
+                          <ReactBootstrapSlider value={[opening_hour,opening_hour]} min={opening_hour} max={closing_hour} formatter={this.formatHour} rangeHighlights={[{start:opening_hour,end:c.contractStart*60},{start:c.contractEnd*60, end: closing_hour}]}/>
                         </div>
                       </Col>
                       <Col lg={2}>

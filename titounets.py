@@ -6,6 +6,8 @@ import caf
 import bcrypt
 from holidays import get_holidays
 import json
+import dateutil.parser
+import pytz
 
 password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
@@ -79,24 +81,37 @@ def get_families():
     
     return jsonify(extract_families())
 
-@app.route('/children', methods=["GET"])
-def get_children():
+@app.route('/children/<date>', methods=["GET"])
+def get_children(date):
     if not session['admin']:
       return make_response("", 401)   
     
-    children = db.keys("*:children:*")
-    result = list()  
+    period_keys = db.keys("*:children:*:periods")
+    result = list()
+    day = dateutil.parser.parse(date).date()
+    local_tz = pytz.timezone("Europe/Paris")
 
-    for child in children:
-      username = child.split(":")[0]
-      child_data = db.hgetall(child)
-      result.append((child_data['surname'], child_data['name'], username))
+    for p in period_keys:
+      json_date_ranges = map(json.loads, db.lrange(p, 0, -1))
+      date_ranges = [(dateutil.parser.parse(r["start"]), dateutil.parser.parse(r["end"])) for r in json_date_ranges] 
+  
+      for start, end in date_ranges:
+        start = start.replace(tzinfo=pytz.utc).astimezone(local_tz).replace(tzinfo=None)
+        end = end.replace(tzinfo=pytz.utc).astimezone(local_tz).replace(tzinfo=None)
+        print start.time(), end.time()
+        if start.date() <= day <= end.date():
+          username,_,child_index,_ = p.split(":")
+          family_data = extract_family_data(username)
+          child = family_data["children"][int(child_index)]
+          start_time = start.time().hour+start.time().minute/60.
+          end_time = end.time().hour+end.time().minute/60.
+          result.append((child['surname'], child['name'], username, start_time, end_time))
 
     result.sort()
 
     children = []
     for child in result:
-      children.append({ "surname": child[0], "name": child[1], "id": child[2] })
+      children.append({ "surname": child[0], "name": child[1], "id": child[2], "contractStart":child[3], "contractEnd": child[4] })
     
     return jsonify(children)   
 
@@ -105,8 +120,8 @@ def get_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         family = extract_family_data(username)
         res = list()
-        for c in family['children']:
-           key = "%d:children:%s:periods" % (username, c["name"])
+        for i, c in enumerate(family['children']):
+           key = "%d:children:%s:periods" % (username, i) #c["name"])
            res.append({ "name": c["name"], "periods": map(json.loads, db.lrange(key, 0, -1)) or [] })
 
         return jsonify(res)
@@ -117,10 +132,11 @@ def get_children_periods(username):
 def set_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         periods = request.get_json()
+        family_data = extract_family_data(username)
         for p in periods:
-           key = "%d:children:%s:periods" % (username, p["name"])
+           i = [p["name"]==c["name"] for c in family_data["children"]].index(True)
+           key = "%d:children:%s:periods" % (username, i)
            plist = map(json.dumps, p["periods"])
-           print p["name"], p["periods"]
            with db.pipeline() as P:
                P.delete(key)
                if plist:
