@@ -26,6 +26,12 @@
     },
     "moment-range-cdn": {
       "build": false
+    },
+    "pdfmake-cdn": {
+      "build": false
+    },
+    "pdfmake-fonts-cdn": {
+      "build": false
     }
   }
 }

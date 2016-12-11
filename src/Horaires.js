@@ -14,7 +14,7 @@ export default class Horaires extends React.Component { // eslint-disable-line r
   constructor(props) {
     super(props);
 
-    this.state = { children: [], opening_hours: [8,19], date: new Date().toISOString() };
+    this.state = { busy: false, children: [], opening_hours: [8,19], date: new Date().toISOString() };
 
     this.formatHour = this.formatHour.bind(this);
     this.dateChanged = this.dateChanged.bind(this);
@@ -22,6 +22,7 @@ export default class Horaires extends React.Component { // eslint-disable-line r
   }
 
   getChildrenList(date) {
+    this.setState({busy: true});
     // get children list
     fetch("/children/"+date, {
         method: "GET",
@@ -30,13 +31,14 @@ export default class Horaires extends React.Component { // eslint-disable-line r
         },
         credentials: 'include'
     }).then(checkStatus).then(parseJSON).then((res) => {
-        this.setState({ children: res });
+        this.setState({ children: res, busy: false });
     });
   }
 
   componentWillMount() {
     this.getChildrenList(this.state.date); 
 
+    this.setState({busy: true});
     // get opening hours
     fetch("/opening_hours", {
         method: "GET",
@@ -45,7 +47,7 @@ export default class Horaires extends React.Component { // eslint-disable-line r
         },
         credentials: 'include'
     }).then(checkStatus).then(parseJSON).then((res) => {
-        this.setState({ opening_hours: res });
+        this.setState({ opening_hours: res, busy: false });
     });
   }
 
@@ -68,6 +70,10 @@ export default class Horaires extends React.Component { // eslint-disable-line r
   render() {
     const opening_hour = this.state.opening_hours[0]*60;
     const closing_hour = this.state.opening_hours[1]*60;
+
+    if (this.state.busy) {
+      return <img className="centered" src="spinner.gif"/>
+    }
 
     return (
       <Grid>

@@ -8,18 +8,17 @@ SystemJS.config({
     "baseURL": "/",
     "production": true,
     "paths": {
-      "github:*": "jspm_packages/github/*",
-      "npm:*": "jspm_packages/npm/*",
-      "titounets/": "src/",
       "react-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react.min.js",
-      "react-dom-cdn":"https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react-dom.min.js",
-      "react-bootstrap-cdn":"https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.7/react-bootstrap.min.js",
-      "react-router-cdn":"https://cdnjs.cloudflare.com/ajax/libs/react-router/3.0.0/ReactRouter.min.js",
+      "react-dom-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react-dom.min.js",
+      "react-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.7/react-bootstrap.min.js",
+      "react-router-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-router/3.0.0/ReactRouter.min.js",
       "react-router-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-router-bootstrap/0.23.1/ReactRouterBootstrap.min.js",
       "bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js",
       "bootstrap-css-cdn": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/",
       "moment-cdn": "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js",
-      "moment-range-cdn": "https://cdnjs.cloudflare.com/ajax/libs/moment-range/2.2.0/moment-range.min.js"
+      "moment-range-cdn": "https://cdnjs.cloudflare.com/ajax/libs/moment-range/2.2.0/moment-range.min.js",
+      "pdfmake-cdn": "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.20/pdfmake.min.js",
+      "pdfmake-fonts-cdn": "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.20/vfs_fonts.js"
     }
   },
   devConfig: {
@@ -68,6 +67,10 @@ SystemJS.config({
         }
       }
     }
+  },
+  map: {
+    "jquery": "jquery-stub.js",
+    "bootstrap-slider": "npm:bootstrap-slider@9.5.3"
   }
 });
 
@@ -79,7 +82,6 @@ SystemJS.config({
   ],
   map: {
     "assert": "npm:jspm-nodelibs-assert@0.2.0",
-    //"bootstrap": "github:twbs/bootstrap@3.3.7",
     "bootstrap": "bootstrap-cdn",
     "buffer": "npm:jspm-nodelibs-buffer@0.2.1",
     "child_process": "npm:jspm-nodelibs-child_process@0.2.0",
@@ -91,31 +93,27 @@ SystemJS.config({
     "fs": "npm:jspm-nodelibs-fs@0.2.0",
     "http": "npm:jspm-nodelibs-http@0.2.0",
     "https": "npm:jspm-nodelibs-https@0.2.1",
-    "jquery": "jquery-stub.js",
     "moment": "npm:moment@2.17.1",
     "moment-range": "npm:moment-range@2.2.0",
     "os": "npm:jspm-nodelibs-os@0.2.0",
     "path": "npm:jspm-nodelibs-path@0.2.1",
+    //"pdfmake": "github:bpampuch/pdfmake@0.1.20",
+    "pdfmake": "pdfmake-cdn",
+    "pdfmake-fonts": "pdfmake-fonts-cdn",
     "process": "npm:jspm-nodelibs-process@0.2.0",
-    //"react": "npm:react@15.4.1",
     "react": "react-cdn",
     "react-bootstrap": "npm:react-bootstrap@0.30.7",
-    //"react-bootstrap": "react-bootstrap-cdn",
     "react-bootstrap-date-picker": "npm:react-bootstrap-date-picker@4.0.0",
-    "bootstrap-slider": "npm:bootstrap-slider@9.5.3",
     "react-bootstrap-slider": "npm:react-bootstrap-slider@1.1.3",
     "react-bootstrap-time-picker": "npm:react-bootstrap-time-picker@1.0.1",
-    //"react-dom": "npm:react-dom@15.4.1",
     "react-dom": "react-dom-cdn",
-    //"react-router": "npm:react-router@3.0.0",
     "react-router": "react-router-cdn",
-    //"react-router-bootstrap": "npm:react-router-bootstrap@0.23.1",
     "react-router-bootstrap": "react-router-bootstrap-cdn",
     "react-yearly-calendar": "npm:react-yearly-calendar@1.1.5",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",
     "string_decoder": "npm:jspm-nodelibs-string_decoder@0.2.0",
     "systemjs/plugin-css": "github:systemjs/plugin-css@0.1.32",
-    "twbs/bootstrap": "bootstrap-cdn", //github:twbs/bootstrap@3.3.7",
+    "twbs/bootstrap": "bootstrap-cdn",
     "url": "npm:jspm-nodelibs-url@0.2.0",
     "util": "npm:jspm-nodelibs-util@0.2.1",
     "vm": "npm:jspm-nodelibs-vm@0.2.0",
@@ -147,15 +145,6 @@ SystemJS.config({
         "object-assign": "npm:object-assign@4.1.0",
         "fbjs": "npm:fbjs@0.8.6",
         "loose-envify": "npm:loose-envify@1.3.0"
-      }
-    },
-    "npm:react-router@3.0.0": {
-      "map": {
-        "invariant": "npm:invariant@2.2.2",
-        "warning": "npm:warning@3.0.0",
-        "loose-envify": "npm:loose-envify@1.3.0",
-        "history": "npm:history@3.2.1",
-        "hoist-non-react-statics": "npm:hoist-non-react-statics@1.2.0"
       }
     },
     "npm:fbjs@0.8.6": {
@@ -196,14 +185,6 @@ SystemJS.config({
         "warning": "npm:warning@3.0.0"
       }
     },
-    "npm:history@3.2.1": {
-      "map": {
-        "warning": "npm:warning@3.0.0",
-        "loose-envify": "npm:loose-envify@1.3.0",
-        "invariant": "npm:invariant@2.2.2",
-        "query-string": "npm:query-string@4.2.3"
-      }
-    },
     "npm:babel-runtime@6.18.0": {
       "map": {
         "core-js": "npm:core-js@2.4.1",
@@ -213,12 +194,6 @@ SystemJS.config({
     "npm:loose-envify@1.3.0": {
       "map": {
         "js-tokens": "npm:js-tokens@2.0.0"
-      }
-    },
-    "npm:query-string@4.2.3": {
-      "map": {
-        "object-assign": "npm:object-assign@4.1.0",
-        "strict-uri-encode": "npm:strict-uri-encode@1.1.0"
       }
     },
     "npm:isomorphic-fetch@2.2.1": {
@@ -482,11 +457,6 @@ SystemJS.config({
       "map": {
         "inherits": "npm:inherits@2.0.3",
         "minimalistic-assert": "npm:minimalistic-assert@1.0.0"
-      }
-    },
-    "github:twbs/bootstrap@3.3.7": {
-      "map": {
-        "jquery": "npm:jquery@3.1.1"
       }
     },
     "npm:react-yearly-calendar@1.1.5": {

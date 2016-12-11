@@ -8,12 +8,14 @@ import TimePicker from 'react-bootstrap-time-picker';
 import './css/GestionContrat.css!';
 import auth from './auth';
 import { checkStatus, parseJSON } from './utils';
+import 'pdfmake'; //let pdfmake = require('pdfmake'); 
+import 'pdfmake-fonts';
 
 export default class GestionContrat extends React.Component { // eslint-disable-line react/prefer-stateless-function
   constructor(props) {
     super(props);
 
-    this.state = { show: false, showEdit: false, holidays: [],
+    this.state = { busy: false, show: false, showEdit: false, holidays: [],
                    editedPeriod: null,
                    current_range: [moment().add(-1, 'years'), moment().add(-1, 'years')],
                    current_start_time: undefined,
@@ -42,9 +44,11 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.handleEndTimeChange = this.handleEndTimeChange.bind(this);
     this.findDays = this.findDays.bind(this);
     this.familySelected = this.familySelected.bind(this);
+    this.editContract = this.editContract.bind(this);
   }
 
   getPeriods(familyId) {
+    this.setState({busy: true});
     fetch("/periods/"+familyId, {
         method: "GET",
         headers: {
@@ -54,7 +58,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
       }).then(checkStatus).then(parseJSON).then((res) => {
         const checked = {};
         res.forEach((c) => { checked[c.name]=true; c.periods.forEach((p, i) => { c.periods[i]=moment.range(p.start, p.end); }) });
-        this.setState({ checked, periods: res });
+        this.setState({ busy: false, checked, periods: res });
       });
   }
 
@@ -62,7 +66,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     moment.locale('fr');
     this.jours = moment.weekdays(true);
 
-    this.setState({ current_start_time: 8*3600, current_end_time: 18*3600 });  
+    this.setState({ busy: true, current_start_time: 8*3600, current_end_time: 18*3600 });  
  
     fetch("/holidays", {
         method: "GET",
@@ -71,7 +75,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         },
         credentials: 'include'
     }).then(checkStatus).then(parseJSON).then((res) => {
-        this.setState({ holidays: res });
+        this.setState({ busy: false, holidays: res });
     });
 
     if (auth.admin()) {
@@ -85,7 +89,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
       }).then(checkStatus).then(parseJSON).then((res) => {
             const family = {};
             res.forEach((f)=>{ family[f.id]=f });
-            this.setState({ families: res, family });
+            this.setState({ families: res, family, busy:false });
       });
     } else if (auth.loggedIn()) {
       this.setState({familyId: auth.familyId()});
@@ -277,14 +281,29 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     return daysArray;
   }
 
+  editContract(familyId) {
+    var docDefinition = { content: 'This is an sample PDF printed with pdfMake' };
+    // open the PDF in a new window
+    pdfMake.createPdf(docDefinition).open();
+
+    // download the PDF
+    //pdfMake.createPdf(docDefinition).download();
+  }
+
   render() {
+    if (this.state.busy) {
+      return <img className="centered" src="spinner.gif"/>
+    }
+
     const customCss = {
       holiday: (day) => { for (const d of this.state.holidays) {
-        if (day._isValid) {
-          const r = moment.range(moment(d.start).add(-1, 'months'), moment(d.end).add(-1, 'months'));
-          if (day.within(r)) { return true; }
+          if (day._isValid) {
+            let st = new Date(d.start[0], d.start[1]-1, d.start[2]);
+            let end= new Date(d.end[0], d.end[1]-1, d.end[2]);
+            const r = moment.range(st, end);
+            if (day.within(r)) { return true; } 
+          }
         }
-      }
         return false;
       },
       weekend: this.isWeekend,
@@ -366,6 +385,11 @@ export default class GestionContrat extends React.Component { // eslint-disable-
               <Button bsStyle="primary"  disabled={this.state.familyId < 0} onClick={()=>{ this.savePeriods(this.state.familyId) }}>Valider contrat</Button>
             </div>
           </Col>
+          { auth.admin() ? (<Col sm={12}>
+            <div className="pull-right" style={{ marginTop: '15px', marginBottom: '15px' }}>
+              <Button bsStyle="info"  disabled={this.state.familyId < 0} onClick={()=>{ this.editContract(this.state.familyId) }}>Editer contrat</Button>
+            </div>
+          </Col>) : "" }
         </Row>
         <Modal show={this.state.showEdit} onHide={this.closeEdit}>
           <Modal.Header closeButton>

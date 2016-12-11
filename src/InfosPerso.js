@@ -32,7 +32,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
   constructor(props) {
     super(props);
 
-    this.state = { showAddFamily: false, adminView: false, families: [], family: {}, selectedFamily: null, enableSave: false, formValues: {}, showDelFamily: false };
+    this.state = { busy: false, showAddFamily: false, adminView: false, families: [], family: {}, selectedFamily: null, enableSave: false, formValues: {}, showDelFamily: false };
 
     this.addFamily = this.addFamily.bind(this);
     this.doAddFamily = this.doAddFamily.bind(this);
@@ -51,7 +51,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     const selectedFamily = auth.familyId();
     const adminView = auth.loggedIn() && auth.admin();
 
-    this.setState({ adminView });
+    this.setState({ adminView, busy: true });
 
     if (adminView) { 
         // get all families
@@ -95,8 +95,10 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     if (stateDict === undefined) { stateDict = {} };
     const formValues = { parent1: "", parent2: "", address1: "", address2: "", zip: "", city:"", qf: 0, id: 0, email: "", phone_number: "" };
 
+    this.setState({busy: true});
+
     if (! selectedFamily) {
-      this.setState({selectedFamily, formValues});
+      this.setState({busy: false, selectedFamily, formValues});
     } else {
       fetch("/family/"+selectedFamily, {
         method: "GET",
@@ -115,7 +117,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
           }
         }
 
-        this.setState({ selectedFamily, families, family: { [selectedFamily]: res }, enableSave: false, ...stateDict });
+        this.setState({ busy: false, selectedFamily, families, family: { [selectedFamily]: res }, enableSave: false, ...stateDict });
       });
     }
   }
@@ -127,9 +129,10 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
   }
 
   synchroniseFamily(id) {
+    this.setState({busy: true});
     this.getCAFData(id, (data) => {
         this.setFormValues(data);
-        this.setState({ enableSave: true, family: { [id]: data } });
+        this.setState({ busy: false, enableSave: true, family: { [id]: data } });
     });
   }
 
@@ -235,6 +238,10 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
   }
 
   render() {
+    if (this.state.busy) {
+      return <img className="centered" src="spinner.gif"/>
+    }
+
     const family = this.state.selectedFamily ? this.state.family[this.state.selectedFamily] : { id: null, children: [] };
 
     const familiesList = (this.state.adminView ? this.state.families.map((f, i) => {

@@ -20,7 +20,6 @@ class Login extends React.Component {
   }
 
   keyUp(target) {
-    console.log(target);
     if (target.keyCode === 13) { return this.signIn(); }
   }
 
