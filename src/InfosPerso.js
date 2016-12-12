@@ -87,7 +87,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     if (data.email != undefined) {
       formValues.email = data.email;
     }
-    
+  
     this.setState({ formValues });
   }
 
@@ -107,6 +107,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
         },
         credentials: 'include'
       }).then(checkStatus).then(parseJSON).then((res) => {
+        console.log(res);
         this.setFormValues(res);
 
         const families = this.state.families;

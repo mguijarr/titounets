@@ -15,11 +15,18 @@ export default class GestionContrat extends React.Component { // eslint-disable-
   constructor(props) {
     super(props);
 
+    let today = moment();
+    let last_year = today.add(-1, "years");
     this.state = { busy: false, show: false, showEdit: false, holidays: [],
                    editedPeriod: null,
-                   current_range: [moment().add(-1, 'years'), moment().add(-1, 'years')],
+                   current_range: [last_year, last_year],
                    current_start_time: undefined,
                    current_end_time: undefined,
+                   opening_time: "8",
+                   closing_time: "20",
+                   contractYear: 2016,
+                   contractRange: moment.range(last_year, last_year),
+                   enabled: false,
                    checked: {},
                    periods: [],
                    familyId: -1,
@@ -33,7 +40,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.changePeriod = this.changePeriod.bind(this);
     this.savePeriods = this.savePeriods.bind(this);
     this.getPeriods = this.getPeriods.bind(this);
-    this.chilClicked = this.childClicked.bind(this);
+    this.childClicked = this.childClicked.bind(this);
     this.checkChildForDay = this.checkChildForDay.bind(this);
     this.isWeekend = this.isWeekend.bind(this);
     this.refinePeriods = this.refinePeriods.bind(this);
@@ -66,8 +73,27 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     moment.locale('fr');
     this.jours = moment.weekdays(true);
 
-    this.setState({ busy: true, current_start_time: 8*3600, current_end_time: 18*3600 });  
- 
+    this.setState({ busy: true });
+    
+    fetch("/parameters", {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+    }).then(checkStatus).then(parseJSON).then((res) => {
+        const contractStart = moment(new Date(res.contractStart));
+        const contractEnd = moment(new Date(res.contractEnd));
+
+        this.setState({ contractYear: contractStart.year(),
+                        contractRange: moment.range(contractStart, contractEnd),
+                        current_start_time: res.opening*3600,
+                        current_end_time: res.closing*3600,
+                        opening_time: res.opening,
+                        closing_time: res.closing,
+                        enabled: res.contractChangesAllowed === '1' });
+    });
+
     fetch("/holidays", {
         method: "GET",
         headers: {
@@ -295,6 +321,10 @@ export default class GestionContrat extends React.Component { // eslint-disable-
       return <img className="centered" src="spinner.gif"/>
     }
 
+    if ((!auth.admin()) && (!this.state.enabled)) {
+      return <h3>Opération non disponible</h3> 
+    }
+
     const customCss = {
       holiday: (day) => { for (const d of this.state.holidays) {
           if (day._isValid) {
@@ -307,8 +337,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         return false;
       },
       weekend: this.isWeekend,
-      // cannot select day before 1st of september
-      //unselectable: (day) => { return day.isBefore(moment([day.year(), 8, 1])); },
+      unselectable: (day) => { return !day.within(this.state.contractRange) }, 
       today: (day) => { return moment().startOf('day').isSame(day, 'd'); },
       child1: (day) => { return this.checkChildForDay(day, 0) && !this.checkChildForDay(day, 1) && !this.checkChildForDay(day, 2); },
       child2: (day) => { return this.checkChildForDay(day, 1) && !this.checkChildForDay(day, 0) && !this.checkChildForDay(day, 2); },
@@ -326,11 +355,11 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         this.state.periods.map((child, i) => { return <Checkbox key={i} checked={this.state.checked[child.name]} onChange={(e) => this.childClicked(child.name)}>{child.name}</Checkbox>; })}
         <div>
           <span><Glyphicon glyph="time" />&nbsp;Heure&nbsp;d&eacute;but:</span>
-          <TimePicker start="8" end="19" format={24} value={this.state.current_start_time} onChange={this.handleStartTimeChange}/>
+          <TimePicker start={this.state.opening_time} end={this.state.closing_time} format={24} value={this.state.current_start_time} onChange={this.handleStartTimeChange}/>
         </div>
         <div style={{ marginTop: '0.5em' }}>
           <span><Glyphicon glyph="time" />&nbsp;Heure&nbsp;fin:</span>
-          <TimePicker start="8" end="19" format={24} value={this.state.current_end_time} onChange={this.handleEndTimeChange}/>
+          <TimePicker start={this.state.opening_time} end={this.state.closing_time} format={24} value={this.state.current_end_time} onChange={this.handleEndTimeChange}/>
         </div>
         <div style={{ marginTop: '0.5em' }}>
           { this.findDays(this.state.current_range).map((day,i) => { return <Checkbox key={'d'+i} defaultChecked inputRef={(chkbox)=>{this.dayCheckbox[day-1]=chkbox}}>{this.jours[day-1]}</Checkbox> }) }
@@ -351,7 +380,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
         </Row>) : "" }
         <Row>
           <Col xs={12}>
-            <Calendar ref="cal" year={2016} firstDayOfWeek={0} selectRange selectedRange={this.state.current_range} onPickRange={this.onPickRange} customClasses={customCss} />
+            <Calendar ref="cal" year={this.state.contractYear} firstDayOfWeek={0} selectRange selectedRange={this.state.current_range} onPickRange={this.onPickRange} customClasses={customCss} />
             <Overlay show={this.state.show} target={this.state.target} placement="right" container={this.refs.cal} containerPadding={20}>
               <Popover id="add_period_popover">
                 <div className="text-right" style={{ padding: '-5px', marginBottom: '0.5em' }}>
@@ -373,7 +402,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
           <Col xs={12}>
             <Panel header="P&eacute;riodes">
                 <div id="periods">
-                    { this.state.periods.map((child, i) => { return child.periods.map((r, j) => { return <span style={{ display: 'inline-block', cursor: 'pointer' }}><Label bsStyle="primary" onClick={(ev) => { this.editPeriod(ev, child, j); }}>{child.name}: {r.start.format('L')} - {r.end.format('L')}, de {r.start.format('HH:mm')} à {r.end.format('HH:mm')}&nbsp;&nbsp;<Glyphicon glyph="remove" onClick={(ev) => { ev.stopPropagation(); this.deletePeriod(child, j); }} /></Label></span>; }); }) }
+                    { this.state.periods.map((child, i) => { return child.periods.map((r, j) => { return r.end.year() === this.state.contractYear ? (<span style={{ display: 'inline-block', cursor: 'pointer' }}><Label bsStyle="primary" onClick={(ev) => { this.editPeriod(ev, child, j); }}>{child.name}: {r.start.format('L')} - {r.end.format('L')}, de {r.start.format('HH:mm')} à {r.end.format('HH:mm')}&nbsp;&nbsp;<Glyphicon glyph="remove" onClick={(ev) => { ev.stopPropagation(); this.deletePeriod(child, j); }} /></Label></span>) : ""; }); }) }
 		</div>
             </Panel>
           </Col>

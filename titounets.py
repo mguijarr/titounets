@@ -67,7 +67,7 @@ def extract_families():
     families = []
 
     for k in db.keys('*'):
-      if k == 'admin' or k.startswith('session:'):
+      if k == 'admin' or k.startswith('session:') or k.startswith("parameters"):
         continue
       if not ':children:' in k:
         families.append(extract_family_data(k))
@@ -174,7 +174,7 @@ def get_family(username):
 
 @app.route("/save", methods=["POST"])
 def save():
-    if not session['admin'] and int(session["username"]) != username:
+    if not session['admin']:
       return make_response("", 401)
 
     content = request.get_json()
@@ -234,9 +234,36 @@ def retrieve_caf_data():
 
   return jsonify(result)
 
+@app.route("/parameters", methods=["GET"])
+def get_parameters():
+  return jsonify(db.hgetall("parameters"))
+
+@app.route("/saveParameters", methods=["POST"])
+def save_parameters():
+  if not session["admin"]:
+    return make_response("", 401)
+
+  content = request.get_json()
+
+  for key, val in content.iteritems():
+    db.hset("parameters", key, val)
+
+  return make_response("", 200)
+
+@app.route("/allowContractChanges", methods=["POST"])
+def allow_contract_changes():
+    if not session["admin"]:
+        return make_response("", 401)
+
+    content = request.get_json()
+
+    db.hset("parameters", "contractChangesAllowed", "1" if content["allowChanges"] else "0")
+
+    return make_response("", 200)
+
 @app.route("/opening_hours", methods=["GET"])
 def opening_hours():
-  return jsonify([7.5, 19])
+  return jsonify([db.hget("parameters", "opening"), db.hget("parameters", "closing")])
 
 @app.route("/calendar", methods=["GET"])
 def get_calendar():

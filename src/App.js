@@ -20,6 +20,12 @@ export default class App extends React.Component { // eslint-disable-line react/
             </Navbar.Brand>
           </Navbar.Header>
 	  <Nav>
+           { auth.admin() ?
+             (<LinkContainer to="/parametres">
+               <NavItem eventKey={0}>Paramètres</NavItem>
+             </LinkContainer>
+             ) : ""
+           }
             <LinkContainer to="/infosperso">
               <NavItem eventKey={1}>{ auth.admin() ? "Familles" : "Données personnelles" }</NavItem>
             </LinkContainer>
