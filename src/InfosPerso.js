@@ -107,9 +107,6 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
         },
         credentials: 'include'
       }).then(checkStatus).then(parseJSON).then((res) => {
-        console.log(res);
-        this.setFormValues(res);
-
         const families = this.state.families;
         for (let i=0; i<families.length; i++) {
           if (families[i].id == selectedFamily) {
@@ -119,6 +116,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
         }
 
         this.setState({ busy: false, selectedFamily, families, family: { [selectedFamily]: res }, enableSave: false, ...stateDict });
+        this.setFormValues(res);
       });
     }
   }
