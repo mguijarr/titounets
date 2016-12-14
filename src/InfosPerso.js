@@ -2,30 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox } from 'react-bootstrap';
 import ChildData from './child.js';
+import { AddressFields, TextInput } from './utils';
 import auth from './auth';
 import { checkStatus, parseJSON } from './utils';
-
-class TextInput extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.state = { value: "" };
-    this.textChanged = this.textChanged.bind(this);
-  }
-
-  componentWillReceiveProps(nextProps) {
-    this.state = { value: nextProps.valueObject[nextProps.valueKey] };
-  }
-
-  textChanged(event) {
-    const value = event.target.value;
-    this.props.onChange(this.props.valueKey, value);
-  }
-
-  render() {
-    return <FormControl readOnly={this.props.readOnly} type="text" value={this.state.value} onChange={this.textChanged} onBlur={this.textChanged}/>
-  }
-}
 
 export default class InfosPerso extends React.Component { // eslint-disable-line react/prefer-stateless-function
 
@@ -77,17 +56,8 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     formValues.qf = data.qf;
     formValues.parent1 = data.parents[0];
     formValues.parent2 = data.parents[1];
-    formValues.address1 = data.address.street[0];
-    formValues.address2 = data.address.street[1];
-    formValues.zip = data.address.zip;
-    formValues.city = data.address.city;
-    if (data.phone_number != undefined) {
-      formValues.phone_number = data.phone_number;
-    }
-    if (data.email != undefined) {
-      formValues.email = data.email;
-    }
-  
+    
+    this.addressFields.setFormValues(data);
     this.setState({ formValues });
   }
 
@@ -125,6 +95,10 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     const formValues = this.state.formValues;
     formValues[key] = value;
     this.setState({ enableSave: true, formValues });
+  }
+
+  addressChanged(key, value) {
+    this.setState({ enableSave: true });
   }
 
   synchroniseFamily(id) {
@@ -203,13 +177,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     if (id) {
       const parents = [this.state.formValues.parent1,
                        this.state.formValues.parent2];
-      const address = { street: [this.state.formValues.address1,
-                                 this.state.formValues.address2],
-                        zip: this.state.formValues.zip,
-                        city: this.state.formValues.city };
       const qf = this.state.formValues.qf;
-      const phone_number = this.state.formValues.phone_number;
-      const email = this.state.formValues.email; 
       const children = this.state.family[id].children;
 
       fetch('/save', {
@@ -218,9 +186,9 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
             'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ username: id, qf, parents, address, email, phone_number, children })
+        body: JSON.stringify({ username: id, qf, parents, children, ...this.addressFields.getData() })
       }).then(checkStatus).then((res) => {
-          const data = { id, qf, parents, address, email, phone_number, children };
+          const data = { id, qf, parents, children, ...this.addressFields.getData() };
 
           const families = this.state.families;
 
@@ -312,40 +280,9 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
                     <TextInput valueObject={this.state.formValues} valueKey="parent2" onChange={this.formValueChanged}/>
                   </Col>
                 </FormGroup>
-                <FormGroup>
-                  <Col sm={2} componentClass={ControlLabel}>Adresse</Col>
-                  <Col sm={10}>
-                    <TextInput valueObject={this.state.formValues} valueKey="address1" onChange={this.formValueChanged}/>
-                  </Col>
-                </FormGroup>
-                 <FormGroup>
-                  <Col sm={2} componentClass={ControlLabel}>{' '}</Col>
-                  <Col sm={10}>
-                    <TextInput valueObject={this.state.formValues} valueKey="address2" onChange={this.formValueChanged}/>
-                  </Col>
-                </FormGroup>
-                <FormGroup>
-                  <Col sm={2} componentClass={ControlLabel}>CP</Col>
-                  <Col sm={3}>
-                    <TextInput valueObject={this.state.formValues} valueKey="zip" onChange={this.formValueChanged}/>
-                  </Col>
-                  <Col sm={1} componentClass={ControlLabel}>Ville</Col>
-                  <Col sm={6}>
-                    <TextInput valueObject={this.state.formValues} valueKey="city" onChange={this.formValueChanged}/>
-                  </Col>
-                </FormGroup>
-                <FormGroup>
-                  <Col sm={2} componentClass={ControlLabel}>Email</Col>
-                  <Col sm={6}>
-                    <TextInput valueObject={this.state.formValues} valueKey="email" onChange={this.formValueChanged}/>
-                  </Col>
-                  <Col sm={1} componentClass={ControlLabel}>Tel</Col>
-                  <Col sm={3}>
-                    <TextInput valueObject={this.state.formValues} valueKey="phone_number" onChange={this.formValueChanged}/>
-                  </Col>
-                </FormGroup>
              </Form>
           </Row>
+          <AddressFields valueChanged={this.addressChanged} ref={(c)=>{this.addressFields=c}}/>
           <Row>
             <Col sm={12}>
               <h3>Enfants</h3>

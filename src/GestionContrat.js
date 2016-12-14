@@ -8,7 +8,7 @@ import TimePicker from 'react-bootstrap-time-picker';
 import './css/GestionContrat.css!';
 import auth from './auth';
 import { checkStatus, parseJSON } from './utils';
-import 'pdfmake'; //let pdfmake = require('pdfmake'); 
+import 'pdfmake'; 
 import 'pdfmake-fonts';
 
 export default class GestionContrat extends React.Component { // eslint-disable-line react/prefer-stateless-function
@@ -308,12 +308,74 @@ export default class GestionContrat extends React.Component { // eslint-disable-
   }
 
   editContract(familyId) {
-    var docDefinition = { content: 'This is an sample PDF printed with pdfMake' };
-    // open the PDF in a new window
-    pdfMake.createPdf(docDefinition).open();
+    let docDefinition = { 
+      content: [{  text: 'Crèche Halte Garderie - Les Titounets de Chartreuse', style: 'title' },
+                {  text: 'address1', style: 'address' },
+                {  text: 'address2', style: 'address' },
+                {  text: 'cp - city', style: 'address' },
+                {  text: 'phone / email', style: 'address' },
+                ' ',
+                {  text: "CONTRAT D'INSCRIPTION", style: 'bigTitle' },
+                {  text: "période du 01/01/2017 au 31/07/2017", style: 'title' },
+                ' ',
+                {  columns: [
+                {  text: 'Famille:', width: '20%' },
+                   {  text: 'ACAJJAOUI / GUIJARRO',  width: '80%' } 
+                ] },
+                ' ',
+                {  columns: [
+                {  text: 'Adresse:', width: '20%' },
+                   {  text: 'address1', width: '80%' }
+                ] },
+                {  columns: [
+                {  text: ' ', width: '20%' },
+                   {  text: 'address2', width: '80%' }
+                ] },
+                {  columns: [
+                {  text: ' ', width: '20%' },
+                   {  text: 'zip - city', width: '80%' }
+                ] },
+                ' ',
+                {  columns: [
+                {  text: 'N° allocataire:', width: '20%' },
+                   {  text: '1137640', width: '80%' }
+                ] }, 
+                " ",
+                "Les parents ou représentants légaux s'engagent par le présent contrat à confier la garde de leur enfant:",
+                " ",
+                { text: 'Elias', style: 'title' },
+                { text: 'né(e) le 15/06/2013', style: 'address' },
+                " ",
+                "aux heures et jours suivants:"
+                
+      ],
 
-    // download the PDF
-    //pdfMake.createPdf(docDefinition).download();
+      styles: {
+        title: {
+          fontSize: 18,
+          bold: true,
+          alignment: 'center'
+        },
+        address: {
+          alignment: 'center'
+        },
+        bigTitle: {
+          fontSize: 22,
+          bold: true,
+          alignment: 'center'
+        },
+        data: {
+          bold: true,
+          alignment: 'left'
+        }
+     }
+   }
+
+   // open the PDF in a new window
+   pdfMake.createPdf(docDefinition).open();
+
+   // download the PDF
+   //pdfMake.createPdf(docDefinition).download();
   }
 
   render() {

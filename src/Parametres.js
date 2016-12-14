@@ -4,16 +4,17 @@ import TimePicker from 'react-bootstrap-time-picker';
 import DatePicker from 'react-bootstrap-date-picker';
 import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox } from 'react-bootstrap';
 import auth from './auth';
-import { checkStatus, parseJSON } from './utils';
+import { checkStatus, parseJSON, AddressFields } from './utils';
 
 export default class Parametres extends React.Component { // eslint-disable-line react/prefer-stateless-function
 
   constructor(props) {
     super(props);
 
-    this.state = { busy: false, opening_hours: [8,19], changesAllowed: false, applyCeiling: false, contractStart: new Date().toISOString(), contractEnd: new Date().toISOString() };
+    this.state = { busy: false, enableSave: false, opening_hours: [8,19], changesAllowed: false, applyCeiling: false, contractStart: new Date().toISOString(), contractEnd: new Date().toISOString() };
 
     this.chkApplyCeiling = undefined;
+    this.addressFields = undefined;
     this.allowChanges = this.allowChanges.bind(this);
     this.setOpeningHour = this.setOpeningHour.bind(this);
     this.setClosingHour = this.setClosingHour.bind(this);
@@ -21,9 +22,10 @@ export default class Parametres extends React.Component { // eslint-disable-line
     this.contractStartChanged = this.contractStartChanged.bind(this);
     this.contractEndChanged = this.contractEndChanged.bind(this);
     this.applyCeilingChanged = this.applyCeilingChanged.bind(this);
+    this.addressChanged = this.addressChanged.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.setState({ busy: true });
     fetch("/parameters", {
             method: "GET",
@@ -33,11 +35,13 @@ export default class Parametres extends React.Component { // eslint-disable-line
             credentials: 'include'
     }).then(checkStatus).then(parseJSON).then((res) => {
         this.setState({ busy: false,
+                       name: res.name,
                        opening_hours: [res.opening, res.closing],
                        changesAllowed: res.contractChangesAllowed === '1',
                        contractEnd: res.contractEnd != "" ? res.contractEnd : this.state.contractEnd,
                        contractStart: res.contractStart != "" ? res.contractStart : this.state.contractStart,
-                       applyCeiling : res.applyCeiling === '1' }); 
+                       applyCeiling : res.applyCeiling === '1'});
+        this.addressFields.setFormValues(res);
     });
   }
 
@@ -57,17 +61,20 @@ export default class Parametres extends React.Component { // eslint-disable-line
   setOpeningHour(time) {
     const hours = this.state.opening_hours;
     hours[0] = time/3600;
-    this.setState({ opening_hours });
+    this.setState({ enableSave: true, opening_hours });
   }
 
   setClosingHour(time) {
     const hours = this.state.opening_hours;
     hours[1] = time/3600;
-    this.setState({ opening_hours });
+    this.setState({ enableSave: true, opening_hours });
+  }
+
+  addressChanged(key, value) {
+    this.setState({ enableSave: true });
   }
 
   save() {
-    this.setState({ busy: true });
     fetch("/saveParameters", {
       method: "POST",
       headers: {
@@ -79,22 +86,23 @@ export default class Parametres extends React.Component { // eslint-disable-line
                              opening: this.state.opening_hours[0],
                              contractEnd: this.state.contractEnd,
                              contractStart: this.state.contractStart,
-                             applyCeiling: this.chkApplyCeiling.checked ? "1" : "0" })
+                             applyCeiling: this.chkApplyCeiling.checked ? "1" : "0",
+                             ...this.addressFields.getData() })
     }).then(checkStatus).then(() => {
-      this.setState({ busy: false });
+      this.setState({ enableSave: false });
     });
   }
 
   contractStartChanged(isodate) {
-    this.setState({ contractStart: isodate });
+    this.setState({ enableSave: true, contractStart: isodate });
   }
   
   contractEndChanged(isodate) {
-    this.setState({ contractEnd: isodate });
+    this.setState({ enableSave: true, contractEnd: isodate });
   }
 
   applyCeilingChanged() {
-    this.setState({ applyCeiling: this.chkApplyCeiling.checked });
+    this.setState({ enableSave: true, applyCeiling: this.chkApplyCeiling.checked });
   }
 
   render() {
@@ -109,12 +117,22 @@ export default class Parametres extends React.Component { // eslint-disable-line
       <Grid>
         <Row>
           <div className="pull-right" style={{ marginTop: '15px', marginBottom: '15px' }}>
-            <Button bsStyle="primary" onClick={this.save}>Enregistrer</Button>
+            <Button bsStyle="primary" disabled={!this.state.enableSave} onClick={this.save}>Enregistrer</Button>
           </div>
         </Row>
         <hr/>
         <Row>
           <Col lg={12}>
+            <Form horizontal>
+                <FormGroup>
+                  <Col sm={2} componentClass={ControlLabel}>Nom de l'établissement</Col>
+                  <Col sm={4}>
+                     <FormControl readOnly={true} type="text" value={this.state.name}/>
+                  </Col>
+                </FormGroup>
+            </Form>
+            <AddressFields valueChanged={this.addressChanged} ref={(c)=>{this.addressFields=c}}/>
+            <hr/>
             <Form horizontal>
                 <FormGroup>
                   <Col sm={2} componentClass={ControlLabel}>Heure ouverture</Col>

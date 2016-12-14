@@ -8,6 +8,7 @@ from holidays import get_holidays
 import json
 import dateutil.parser
 import pytz
+import ast
 
 password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
@@ -236,7 +237,9 @@ def retrieve_caf_data():
 
 @app.route("/parameters", methods=["GET"])
 def get_parameters():
-  return jsonify(db.hgetall("parameters"))
+  params = db.hgetall("parameters")
+  params['address'] = ast.literal_eval(params.pop("address", {}))
+  return jsonify(params)
 
 @app.route("/saveParameters", methods=["POST"])
 def save_parameters():
