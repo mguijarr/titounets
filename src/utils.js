@@ -1,6 +1,22 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Row, Col, Form, FormGroup, FormControl, ControlLabel } from 'react-bootstrap';
+import moment from 'moment';
+
+export function findDays(period) {
+  const days = {};
+  // return array of days present in a range
+  const range = moment.range(...period);
+  range.by('days', (moment) => {
+    const day = moment.isoWeekday();
+    // iso day: 1=Monday, 7=Sunday
+    if (day <= 5) { days[day]=true; } 
+  });
+  const daysArray = Object.keys(days);
+  daysArray.sort();
+  return daysArray;
+}
+
 
 export function checkStatus(response) {
   if (response.status >= 200 && response.status < 300) {

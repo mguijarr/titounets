@@ -7,9 +7,10 @@ import { Grid, Row, Col, Overlay, Popover, Button, Checkbox, Label, Glyphicon, P
 import TimePicker from 'react-bootstrap-time-picker';
 import './css/GestionContrat.css!';
 import auth from './auth';
-import { checkStatus, parseJSON } from './utils';
+import { checkStatus, parseJSON, findDays } from './utils';
 import 'pdfmake'; 
 import 'pdfmake-fonts';
+import Contract from './contrat';
 
 export default class GestionContrat extends React.Component { // eslint-disable-line react/prefer-stateless-function
   constructor(props) {
@@ -22,6 +23,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
                    current_range: [last_year, last_year],
                    current_start_time: undefined,
                    current_end_time: undefined,
+                   name: "",
                    opening_time: "8",
                    closing_time: "20",
                    contractYear: 2016,
@@ -29,6 +31,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
                    enabled: false,
                    checked: {},
                    periods: [],
+                   address: {},
                    familyId: -1,
                    family: {},
                    families: []
@@ -49,7 +52,6 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.closeEdit = this.closeEdit.bind(this);
     this.handleStartTimeChange = this.handleStartTimeChange.bind(this);
     this.handleEndTimeChange = this.handleEndTimeChange.bind(this);
-    this.findDays = this.findDays.bind(this);
     this.familySelected = this.familySelected.bind(this);
     this.editContract = this.editContract.bind(this);
   }
@@ -84,6 +86,8 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     }).then(checkStatus).then(parseJSON).then((res) => {
         const contractStart = moment(new Date(res.contractStart));
         const contractEnd = moment(new Date(res.contractEnd));
+        res.address.phone_number = res.phone_number;
+        res.address.email = res.email;
 
         this.setState({ contractYear: contractStart.year(),
                         contractRange: moment.range(contractStart, contractEnd),
@@ -91,7 +95,9 @@ export default class GestionContrat extends React.Component { // eslint-disable-
                         current_end_time: res.closing*3600,
                         opening_time: res.opening,
                         closing_time: res.closing,
-                        enabled: res.contractChangesAllowed === '1' });
+                        enabled: res.contractChangesAllowed === '1',
+                        address: res.address,
+                        name: res.name });
     });
 
     fetch("/holidays", {
@@ -162,7 +168,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     const ranges = [];
     const days = [false, false, false, false, false];
  
-    this.findDays(new_range).forEach((d) => { days[d-1] = this.dayCheckbox[d-1].checked });
+    findDays([new_range.start, new_range.end]).forEach((d) => { days[d-1] = this.dayCheckbox[d-1].checked });
     
     let start = moment(new_range.start);
     let end = moment(new_range.start);
@@ -293,89 +299,38 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.setState({ current_end_time: time });
   }
 
-  findDays(period) {
-    const days = {};
-    // return array of days present in a period
-    const range = moment.range(...this.state.current_range);
-    range.by('days', (moment) => {
-      const day = moment.isoWeekday();
-      // iso day: 1=Monday, 7=Sunday
-      if (day <= 5) { days[day]=true; } 
-    });
-    const daysArray = Object.keys(days);
-    daysArray.sort();
-    return daysArray;
-  }
-
   editContract(familyId) {
-    let docDefinition = { 
-      content: [{  text: 'Crèche Halte Garderie - Les Titounets de Chartreuse', style: 'title' },
-                {  text: 'address1', style: 'address' },
-                {  text: 'address2', style: 'address' },
-                {  text: 'cp - city', style: 'address' },
-                {  text: 'phone / email', style: 'address' },
-                ' ',
-                {  text: "CONTRAT D'INSCRIPTION", style: 'bigTitle' },
-                {  text: "période du 01/01/2017 au 31/07/2017", style: 'title' },
-                ' ',
-                {  columns: [
-                {  text: 'Famille:', width: '20%' },
-                   {  text: 'ACAJJAOUI / GUIJARRO',  width: '80%' } 
-                ] },
-                ' ',
-                {  columns: [
-                {  text: 'Adresse:', width: '20%' },
-                   {  text: 'address1', width: '80%' }
-                ] },
-                {  columns: [
-                {  text: ' ', width: '20%' },
-                   {  text: 'address2', width: '80%' }
-                ] },
-                {  columns: [
-                {  text: ' ', width: '20%' },
-                   {  text: 'zip - city', width: '80%' }
-                ] },
-                ' ',
-                {  columns: [
-                {  text: 'N° allocataire:', width: '20%' },
-                   {  text: '1137640', width: '80%' }
-                ] }, 
-                " ",
-                "Les parents ou représentants légaux s'engagent par le présent contrat à confier la garde de leur enfant:",
-                " ",
-                { text: 'Elias', style: 'title' },
-                { text: 'né(e) le 15/06/2013', style: 'address' },
-                " ",
-                "aux heures et jours suivants:"
-                
-      ],
+    let c = new Contract();
+    let f = this.state.family[this.state.familyId];
 
-      styles: {
-        title: {
-          fontSize: 18,
-          bold: true,
-          alignment: 'center'
-        },
-        address: {
-          alignment: 'center'
-        },
-        bigTitle: {
-          fontSize: 22,
-          bold: true,
-          alignment: 'center'
-        },
-        data: {
-          bold: true,
-          alignment: 'left'
-        }
+    f.children.forEach((child, i) => {
+      let docDefinition = { 
+        content: c.getContents(this.state.name, this.state.address, this.state.contractRange, f, child, 
+                 this.state.periods[i].periods.filter((x)=>{return x.end.year() === this.state.contractYear })),
+        styles: {
+          title: {
+            fontSize: 16,
+            bold: true,
+            alignment: 'center'
+          },
+          centered: {
+            alignment: 'center'
+          },
+          bigTitle: {
+            fontSize: 20,
+            bold: true,
+            alignment: 'center'
+          }
+       },
+       defaultStyle: { fontSize: 10 }
      }
-   }
 
-   // open the PDF in a new window
-   pdfMake.createPdf(docDefinition).open();
+     // open the PDF in a new window
+     pdfMake.createPdf(docDefinition).open();
 
-   // download the PDF
-   //pdfMake.createPdf(docDefinition).download();
+     // download the PDF
+     //pdfMake.createPdf(docDefinition).download();
+   });
   }
 
   render() {
@@ -424,7 +379,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
           <TimePicker start={this.state.opening_time} end={this.state.closing_time} format={24} value={this.state.current_end_time} onChange={this.handleEndTimeChange}/>
         </div>
         <div style={{ marginTop: '0.5em' }}>
-          { this.findDays(this.state.current_range).map((day,i) => { return <Checkbox key={'d'+i} defaultChecked inputRef={(chkbox)=>{this.dayCheckbox[day-1]=chkbox}}>{this.jours[day-1]}</Checkbox> }) }
+          { findDays(this.state.current_range).map((day,i) => { return <Checkbox key={'d'+i} defaultChecked inputRef={(chkbox)=>{this.dayCheckbox[day-1]=chkbox}}>{this.jours[day-1]}</Checkbox> }) }
         </div>
       </div>);
 
