@@ -3,13 +3,13 @@ import ReactDOM from 'react-dom';
 import DatePicker from 'react-bootstrap-date-picker';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 import 'bootstrap-slider/dist/css/bootstrap-slider.min.css!';
-import './css/Horaires.css!';
+import './css/Heures.css!';
 import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox } from 'react-bootstrap';
 import ChildData from './child.js';
 import auth from './auth';
 import { checkStatus, parseJSON } from './utils';
 
-export default class Horaires extends React.Component { // eslint-disable-line react/prefer-stateless-function
+export default class Heures extends React.Component { // eslint-disable-line react/prefer-stateless-function
 
   constructor(props) {
     super(props);

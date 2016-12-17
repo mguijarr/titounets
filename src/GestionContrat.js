@@ -54,6 +54,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.handleEndTimeChange = this.handleEndTimeChange.bind(this);
     this.familySelected = this.familySelected.bind(this);
     this.editContract = this.editContract.bind(this);
+    this.contractYearPeriods = this.contractYearPeriods.bind(this);
   }
 
   getPeriods(familyId) {
@@ -299,15 +300,25 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.setState({ current_end_time: time });
   }
 
+  contractYearPeriods(child_i) {
+    return this.state.periods[child_i].periods.filter((x) => { return x.end.year() === this.state.contractYear });
+  }
+
   editContract(familyId) {
     let c = new Contract();
     let f = this.state.family[this.state.familyId];
+    let content = [];
 
     f.children.forEach((child, i) => {
-      let docDefinition = { 
-        content: c.getContents(this.state.name, this.state.address, this.state.contractRange, f, child, 
-                 this.state.periods[i].periods.filter((x)=>{return x.end.year() === this.state.contractYear })),
-        styles: {
+      const periods = this.contractYearPeriods(i);
+      if (periods.length > 0) {
+          content.push(...c.getContents(this.state.name, this.state.address, this.state.contractRange, f, child, periods));
+      }
+    });
+
+    let docDefinition = { 
+      content,
+      styles: {
           title: {
             fontSize: 16,
             bold: true,
@@ -321,16 +332,15 @@ export default class GestionContrat extends React.Component { // eslint-disable-
             bold: true,
             alignment: 'center'
           }
-       },
-       defaultStyle: { fontSize: 10 }
-     }
+      },
+      defaultStyle: { fontSize: 10 }
+    }
 
      // open the PDF in a new window
      pdfMake.createPdf(docDefinition).open();
 
      // download the PDF
      //pdfMake.createPdf(docDefinition).download();
-   });
   }
 
   render() {
@@ -419,7 +429,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
           <Col xs={12}>
             <Panel header="P&eacute;riodes">
                 <div id="periods">
-                    { this.state.periods.map((child, i) => { return child.periods.map((r, j) => { return r.end.year() === this.state.contractYear ? (<span style={{ display: 'inline-block', cursor: 'pointer' }}><Label bsStyle="primary" onClick={(ev) => { this.editPeriod(ev, child, j); }}>{child.name}: {r.start.format('L')} - {r.end.format('L')}, de {r.start.format('HH:mm')} à {r.end.format('HH:mm')}&nbsp;&nbsp;<Glyphicon glyph="remove" onClick={(ev) => { ev.stopPropagation(); this.deletePeriod(child, j); }} /></Label></span>) : ""; }); }) }
+                    { this.state.periods.map((child, i) => { return this.contractYearPeriods(i).map((r, j) => { return r.end.year() === this.state.contractYear ? (<span style={{ display: 'inline-block', cursor: 'pointer' }}><Label bsStyle="primary" onClick={(ev) => { this.editPeriod(ev, child, j); }}>{child.name}: {r.start.format('L')} - {r.end.format('L')}, de {r.start.format('HH:mm')} à {r.end.format('HH:mm')}&nbsp;&nbsp;<Glyphicon glyph="remove" onClick={(ev) => { ev.stopPropagation(); this.deletePeriod(child, j); }} /></Label></span>) : ""; }); }) }
 		</div>
             </Panel>
           </Col>

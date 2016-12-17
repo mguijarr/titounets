@@ -33,8 +33,8 @@ export default class App extends React.Component { // eslint-disable-line react/
                  <NavItem eventKey={2}>Gestion Contrat</NavItem>
             </LinkContainer>
            { auth.admin() ?
-              (<LinkContainer to="/horaires">
-                 <NavItem eventKey={3}>Horaires réalisés</NavItem>
+              (<LinkContainer to="/heures">
+                 <NavItem eventKey={3}>Heures réalisées</NavItem>
                </LinkContainer>
               ) : "" 
            }

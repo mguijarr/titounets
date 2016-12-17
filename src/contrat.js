@@ -12,7 +12,14 @@ export default class Contract {
     const f = family;
     const cStart = contractPeriod.start.format('L');
     const cEnd = contractPeriod.end.format('L');
-    const familyName = family.parents[0].split(' ').pop() + (family.parents[1] ? ' / '+family.parents[1].split(' ').pop() : "");
+    const familyName1 = family.parents[0].split(' ').pop();
+    const familyName2 = family.parents[1] ? family.parents[1].split(' ').pop() : "";
+    let familyName = "";
+    if (familyName2 === familyName1) {
+      familyName = familyName1; 
+    } else if (familyName2) {
+      familyName = familyName1 + ' / ' + familyName2;
+    }
     const birthDate = moment(new Date(child.birthdate)).format('L');
     const p = []
     let nHours = 0;
@@ -56,7 +63,7 @@ export default class Contract {
 
     if (childPeriods.length >= 1) {
       const r = moment.range(childPeriods[0].start, childPeriods[childPeriods.length-1].end);
-      nMonths = r.diff('months');
+      r.by('months', (m) => { nMonths += 1 });
       nHoursMonth = Number(nHours/nMonths).toFixed(2);
     }
 
@@ -71,7 +78,7 @@ export default class Contract {
 { columns: [{ text: `${address.zip} ${address.city}`, style: 'centered', width: '30%' }]},
 { columns: [{ text: `${address.phone_number}`, style: 'centered', width: '30%' }]},
 { columns: [{ text: `${address.email}`, style: 'centered', width: '30%' }]},
-' ', ' ', ' ',
+' ', ' ', 
 {  text: "CONTRAT D'INSCRIPTION", style: 'bigTitle' },
 {  text: `du ${cStart} au ${cEnd}`, style: 'title' },
 ' ', ' ',
@@ -81,7 +88,7 @@ export default class Contract {
 {  columns: [{  text: ' ', width: '20%' }, {  text: `${f.address.street[1]}`, width: '80%' }] },
 {  columns: [{  text: ' ', width: '20%' }, {  text: `${f.address.zip} ${f.address.city}`, width: '80%' }] },
 ' ',
-{  columns: [{  text: 'N° allocataire:', width: '20%' },{  text: `${f.id}`, width: '80%' }] },
+{  columns: [{  text: 'N° allocataire:', width: '20%' },{  text: `${f.id}`, width: '20%' }, {  text: `QF: ${family.qf}, revenu mensuel: ${monthlyIncome} euros`, width: '60%' }] },
 " ",
 "Les parents ou représentants légaux s'engagent par le présent contrat à confier la garde de leur enfant:",
 " ",
@@ -98,18 +105,14 @@ export default class Contract {
     ]
   }
 },
+{ text: ' ', pageBreak: p.length > 13 ? 'after' : null },
+{ columns: [{  text: "Nb d'heures:", width: '20%' }, { text: `${nHours} pour ${nMonths} mois de présence, soit ${nHoursMonth} heures mensuelles en moyenne`, width: '80%' }]},
 ' ',
-{ text: `Nombre d'heures total: ${nHours} pour ${nMonths} mois de présence, soit ${nHoursMonth} heures mensuelles en moyenne.` },
-' ', 
-{ columns: [{  text: 'QF:', width: '20%' },  {  text: `${family.qf}, revenu mensuel: ${monthlyIncome} euros`, width: '80%' }] },
-' ',
-{ columns: [{  text: 'Taux CAF:', width: '20%' },  {  text: `${CAFrate} (${family.children.length} enfants dans la famille)`, width: '80%' }] },
-' ',
-{ columns: [{  text: 'Taux horaire:', width: '20%' },  {  text: `${rate}`, width: '80%' }] },
+{ columns: [{  text: 'Taux horaire:', width: '20%' },  {  text: `${rate}, en application du taux CAF ${CAFrate} (${family.children.length} enfants dans la famille)`, width: '80%' }] },
 ' ',
 { text: `Tarif mensuel: ${monthlyAmount} euros`, style: 'title' },
 ' ',
-{ text: `Fait à ${address.city} le ${this.today}. Signature des parents ou du représentant légal:` }
+{ text: `Fait à ${address.city} le ${this.today}. Signature des parents ou du représentant légal:`, style: 'centered', pageBreak: 'after' }
 ]};
 }
 

@@ -8,7 +8,7 @@ import Home from './Home';
 import Parametres from './Parametres';
 import GestionContrat from './GestionContrat';
 import InfosPerso from './InfosPerso';
-import Horaires from './Horaires';
+import Heures from './Heures';
 
 function requireAuth(nextState, replace) {
   if (!auth.loggedIn()) {
@@ -27,7 +27,7 @@ const render = () => {
             <Route path='parametres' component={Parametres} onEnter={requireAuth}/>
             <Route path='infosperso' component={InfosPerso} onEnter={requireAuth}/>
             <Route path='gestioncontrat' component={GestionContrat} onEnter={requireAuth}/>
-            <Route path='horaires' component={Horaires} onEnter={requireAuth}/>
+            <Route path='heures' component={Heures} onEnter={requireAuth}/>
           </Route>  
         </Router>,
     document.getElementById('app')
