@@ -4,7 +4,7 @@ import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Lab
 import ChildData from './child.js';
 import { AddressFields, TextInput } from './utils';
 import auth from './auth';
-import { checkStatus, parseJSON } from './utils';
+import { checkStatus, parseJSON, getFamilyName } from './utils';
 
 export default class InfosPerso extends React.Component { // eslint-disable-line react/prefer-stateless-function
 
@@ -24,6 +24,8 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     this.synchroniseFamily = this.synchroniseFamily.bind(this);
     this.getCAFData = this.getCAFData.bind(this);
     this.setFormValues = this.setFormValues.bind(this);
+    this.addressChanged = this.addressChanged.bind(this);
+    this.childChanged = this.childChanged.bind(this);
   }
 
   componentWillMount() {
@@ -63,6 +65,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
 
   loadFamily(selectedFamily, stateDict) {
     if (stateDict === undefined) { stateDict = {} };
+
     const formValues = { parent1: "", parent2: "", address1: "", address2: "", zip: "", city:"", qf: 0, id: 0, email: "", phone_number: "" };
 
     this.setState({busy: true});
@@ -95,6 +98,13 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     const formValues = this.state.formValues;
     formValues[key] = value;
     this.setState({ enableSave: true, formValues });
+  }
+
+  childChanged(child_i, key, value) {
+    const family = this.state.family;
+    const f = family[this.state.selectedFamily];
+    f.children[child_i][key] = value;
+    this.setState({ enableSave: true, family }); 
   }
 
   addressChanged(key, value) {
@@ -179,7 +189,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
                        this.state.formValues.parent2];
       const qf = this.state.formValues.qf;
       const children = this.state.family[id].children;
-
+ 
       fetch('/save', {
         method: 'POST',
         headers: {
@@ -212,12 +222,8 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     const family = this.state.selectedFamily ? this.state.family[this.state.selectedFamily] : { id: null, children: [] };
 
     const familiesList = (this.state.adminView ? this.state.families.map((f, i) => {
-        let p = "";
-        try {
-            p = " ("+f.parents[0]+")";
-        } catch (e) {};
 	return (<div><Button bsStyle='link' bsSize="small" onClick={()=>{ this.loadFamily(f.id) } }>
-                  {f.id+p}
+                  {getFamilyName(f) + ' ('+f.id+')'}
                 </Button>
                 <Button pullRight bsSize="xsmall" onClick={()=>{ this.loadFamily(f.id, { showDelFamily: true }) }}><Glyphicon glyph="remove"/></Button>
                </div>);
@@ -290,7 +296,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
           </Row>
           <Row>
             <Col sm={12}>
-              {family.children.map((c, i) => { return <ChildData ref={"child"+i} data={c} readOnly={!this.state.adminView}/> }) }
+              {family.children.map((c, i) => { return <ChildData data={c} readOnly={!this.state.adminView} onChange={(k,v)=>{this.childChanged(i, k, v)}}/> }) }
             </Col>
           </Row>
         </Col>

@@ -69,7 +69,7 @@ export default class Contract {
 
     monthlyAmount = rate*(nHours/nMonths);
     monthlyAmount = monthlyAmount.toFixed(2);
-    rate = rate.toFixed(2);
+    rate = rate.toFixed(3);
 
     return [
 { columns: [{ text: `${name}`, style: 'title', width:'30%' }]},

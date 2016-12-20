@@ -32,6 +32,16 @@ export function parseJSON(response) {
   return response.json()
 }
 
+export function getFamilyName(familyData) {
+  const names = {};
+ 
+  familyData.children.forEach((c)=>{
+    names[c.surname.toUpperCase()]=true;
+  });
+ 
+  return Object.keys(names).join(" / "); 
+}
+
 export class TextInput extends React.Component {
   constructor(props) {
     super(props);
@@ -143,6 +153,5 @@ export class AddressFields extends React.Component { // eslint-disable-line reac
     );
   }
 }
-
 
 

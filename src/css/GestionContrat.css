@@ -1,5 +1,6 @@
 table.calendar {
   border-collapse: collapse;
+  display: inline-block;
 }
 
 table.calendar thead {
@@ -26,7 +27,6 @@ table.calendar td {
   text-align: center;
   padding: 8px;
   cursor: pointer;
-  border: 1px solid rgba(185, 185, 185, 0.13);
   min-width: 15px;
 }
 
@@ -166,4 +166,21 @@ div.calendar-controls .today {
 }
 
 #periods span + span { margin-left: 10px; margin-top: 10px; }
+
+.popover{
+    width:400px;
+    max-width: 100%;
+}
+
+.beginPeriod {
+    box-shadow: inset 2px 2px 0px 0px #000;
+}
+
+.period {
+    box-shadow: inset 0px 2px 0px 0px #000;
+}
+
+.endPeriod {
+    box-shadow: inset -2px 2px 0px 0px #000;
+}
 
