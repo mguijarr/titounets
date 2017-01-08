@@ -5,8 +5,9 @@ import 'moment/locale/fr';
 import { Calendar } from 'react-yearly-calendar';
 import { Grid, Row, Col, Overlay, Popover, Button, Checkbox, Label, Glyphicon, Panel, Modal, DropdownButton, MenuItem, Table } from 'react-bootstrap';
 import './css/GestionContrat.css!';
+import './css/calendar.css!';
 import auth from './auth';
-import { checkStatus, parseJSON, findDays, getFamilyName } from './utils';
+import { isWeekend, isHoliday, checkStatus, parseJSON, findDays, getFamilyName } from './utils';
 import 'pdfmake'; 
 import 'pdfmake-fonts';
 import Contract from './contrat';
@@ -42,7 +43,6 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.savePeriods = this.savePeriods.bind(this);
     this.getPeriods = this.getPeriods.bind(this);
     this.checkChildForDay = this.checkChildForDay.bind(this);
-    this.isWeekend = this.isWeekend.bind(this);
     this.refinePeriods = this.refinePeriods.bind(this);
     this.deletePeriod = this.deletePeriod.bind(this);
     this.closeEdit = this.closeEdit.bind(this);
@@ -138,7 +138,7 @@ export default class GestionContrat extends React.Component { // eslint-disable-
           const b = periods[k].range;
           const aend = moment(a.end).add(1, 'd');
           let new_range;
-          if (aend.isSame(b.start, 'day') || (this.isWeekend(aend) && moment(b.start).add(-2, 'd').isSame(aend, 'day'))) {
+          if (aend.isSame(b.start, 'day') || (isWeekend(aend) && moment(b.start).add(-2, 'd').isSame(aend, 'day'))) {
             new_range = moment.range(a.start, b.end);
           } else {
             // new_range will be null if the two ranges do not intersect
@@ -232,14 +232,10 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     this.setState({ show: true, currentRange: [start, end], target });
   }
 
-  isWeekend(day) {
-    return moment(day).weekday()>=5;
-    //return moment(day).endOf('week').add(-1, 'days').isSame(day, 'd') || moment(day).endOf('week').isSame(day, 'd');
-  }
 
   checkChildForDay(day, child_index) {
     if (this.state.periods.length > child_index) {
-      if (this.isWeekend(day)) { return false; }
+      if (isWeekend(day)) { return false; }
       for (const p of this.state.periods[child_index].periods) {
         const r = moment.range(p.range.start, p.range.end)
         if ((day._isValid) && (day.within(r))) {
@@ -314,17 +310,8 @@ export default class GestionContrat extends React.Component { // eslint-disable-
     const pointerEventsCalendar = this.state.familyId >= 0 ? "auto" : "none";
 
     const customCss = {
-      holiday: (day) => { for (const d of this.state.holidays) {
-          if (day._isValid) {
-            let st = new Date(d.start[0], d.start[1]-1, d.start[2]);
-            let end= new Date(d.end[0], d.end[1]-1, d.end[2]);
-            const r = moment.range(st, end);
-            if (day.within(r)) { return true; } 
-          }
-        }
-        return false;
-      },
-      weekend: this.isWeekend,
+      holiday: (day) => { return isHoliday(day, this.state.holidays); },
+      weekend: isWeekend,
       unselectable: (day) => { return !day.within(this.state.contractRange) },
       today: (day) => { return moment().startOf('day').isSame(day, 'd'); },
       child1: (day) => { return this.checkChildForDay(day, 0) && !this.checkChildForDay(day, 1) && !this.checkChildForDay(day, 2); },

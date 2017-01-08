@@ -12,6 +12,7 @@ def get_holidays():
     c = cal.Calendar()
 
     hols = []
+    summer_hols = {}
 
     for e in c.from_ical(ical_data).walk("vevent"):
         if e.get('dtend'):
@@ -20,8 +21,19 @@ def get_holidays():
                 end = e.get("dtend").dt
                 hols.append({"start": [start.year, start.month, start.day],
                              "end": [end.year, end.month, end.day]})
+        if "Vacances d'" in e.get('description'):
+            d = e.get("dtstart").dt
+            summer_hols["start"] = [d.year, d.month, d.day]
+        elif 'Rentr' in e.get('description'):
+            d = e.get("dtstart").dt
+            summer_hols["end"] = [d.year, d.month, d.day]
+            if len(summer_hols) == 2:
+                hols.append(summer_hols)
+            summer_hols = {}
 
     return hols
 
+if __name__ == '__main__':
+    print get_holidays()
 
 

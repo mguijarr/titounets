@@ -1,0 +1,129 @@
+table.calendar {
+  border-collapse: collapse;
+  display: inline-block;
+}
+
+table.calendar thead {
+  background-color: #5A5A5A;
+  color: white;
+  margin-bottom: 3px;
+  border-bottom: 2px solid white
+}
+
+table.calendar thead th {
+  font-weight: lighter;
+  padding: 10px 3px;
+}
+
+table.calendar thead th.bolder {
+  font-weight: bold;
+}
+
+table.calendar tbody {
+  font-size: 0.8em;
+}
+
+table.calendar td {
+  text-align: center;
+  padding: 8px;
+  cursor: pointer;
+  min-width: 15px;
+}
+
+table.calendar tr:last-child td {
+  border-bottom: none;
+}
+
+table.calendar td.month-name {
+  font-weight: bold;
+  text-align: left;
+  cursor: default;
+  border-left: none;
+}
+
+table.calendar td.prev-month,
+table.calendar td.next-month {
+  color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+table.calendar td.week-separator {
+  pointer-events: none;
+  padding: 0;
+  width: 8px;
+  min-width: 0;
+}
+
+.weekend,
+.unselectable {
+  pointer-events: none;
+  background-color: rgb(232,241,255) !important;
+  color: rgb(213, 219, 226);
+}
+
+.closedDay {
+  background-color: rgb(255,0,0) !important;
+}
+
+.today {
+  outline-style: solid;
+  outline-color: red;
+  outline-width: 3px;
+  font-weight: bold;
+  color: black;
+}
+
+.holiday {
+  background-color: rgba(255,249,226,50);
+}
+
+table.calendar td.holidays {
+  font-weight: bold;
+  color: red;
+  text-decoration: underline;
+}
+
+table.calendar td.weekend {
+  font-style: italic;
+  font-weight: bold;
+}
+
+table.calendar td.bolder {
+  font-weight: bold;
+}
+
+table.calendar td.range {
+  background-color: rgb(153, 206, 255);
+}
+
+div.calendar-controls {
+  margin: 5px auto;
+  display: table;
+  font-size: 25px;
+  line-height: 35px;
+}
+
+div.calendar-controls div {
+  display: inline;
+}
+
+div.calendar-controls .current-year {
+  margin: 0 30px;
+}
+
+div.calendar-controls .control {
+  font-weight: bolder;
+  color: #323232;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+div.calendar-controls .today {
+  position: absolute;
+  right: 15px;
+  line-height: 35px;
+  font-size: 0.6em;
+  text-transform: uppercase;
+}
+

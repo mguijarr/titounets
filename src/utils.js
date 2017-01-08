@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Row, Col, Form, FormGroup, FormControl, ControlLabel } from 'react-bootstrap';
 import moment from 'moment';
+import 'moment-range';
 
 export function findDays(period) {
   const days = {};
@@ -17,6 +18,21 @@ export function findDays(period) {
   return daysArray;
 }
 
+export function isHoliday(day, holidays) {
+  for (const d of holidays) {
+    if (day._isValid) {
+      let st = new Date(d.start[0], d.start[1]-1, d.start[2]);
+      let end= new Date(d.end[0], d.end[1]-1, d.end[2]);
+      const r = moment.range(moment(st), moment(end).add(-1, "day"));
+      if (day.within(r)) { return true; }
+    }
+  }
+  return false;
+}
+
+export function  isWeekend(day) {
+    return moment(day).weekday()>=5;
+}
 
 export function checkStatus(response) {
   if (response.status >= 200 && response.status < 300) {
@@ -154,4 +170,46 @@ export class AddressFields extends React.Component { // eslint-disable-line reac
   }
 }
 
+function easter(Y) {
+    var C = Math.floor(Y/100);
+    var N = Y - 19*Math.floor(Y/19);
+    var K = Math.floor((C - 17)/25);
+    var I = C - Math.floor(C/4) - Math.floor((C - K)/3) + 19*N + 15;
+    I = I - 30*Math.floor((I/30));
+    I = I - Math.floor(I/28)*(1 - Math.floor(I/28)*Math.floor(29/(I + 1))*Math.floor((21 - N)/11));
+    var J = Y + Math.floor(Y/4) + I + 2 - C + Math.floor(C/4);
+    J = J - 7*Math.floor(J/7);
+    var L = I - J;
+    var M = 3 + Math.floor((L + 40)/44);
+    var D = L + 28 - 31*Math.floor(M/4);
 
+    return moment(new Date(Y, M-1, D));
+}
+
+export function bankHolidayDays(year, alsace) {
+    const paques = easter(year);
+    const dates = [
+      moment(new Date(year, 0, 1)), 
+      moment(new Date(year, 4, 1)), 
+      moment(new Date(year, 4, 8)), 
+      moment(new Date(year, 6, 14)), 
+      moment(new Date(year, 7, 15)), 
+      moment(new Date(year, 10, 1)), 
+      moment(new Date(year, 10, 11)), 
+      moment(new Date(year, 11, 25)), 
+      moment(paques).add(1, "days"),
+      moment(paques).add(39, "days"),
+      moment(paques).add(50, "days")]
+    if (alsace) {
+      dates.push(moment(paques).add(-2));
+      dates.push(new Date(year,11,26));
+    }
+    return dates;
+}
+
+export function isBankHoliday(day, alsace) {
+  const year = day.year();
+  const dates = bankHolidayDays(year, alsace);
+
+  return dates.some((d)=>{ return d.isSame(day); });
+}

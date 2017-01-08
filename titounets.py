@@ -25,6 +25,7 @@ def index():
 
 @app.route('/holidays')
 def holidays():
+    print get_holidays()
     return jsonify(get_holidays())
 
 @app.route("/login", methods=["POST"])
