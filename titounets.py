@@ -239,7 +239,8 @@ def retrieve_caf_data():
 @app.route("/parameters", methods=["GET"])
 def get_parameters():
   params = db.hgetall("parameters")
-  params['address'] = ast.literal_eval(params.pop("address", {}))
+  params['address'] = ast.literal_eval(params.pop("address", '{}'))
+  params['closedPeriods'] = ast.literal_eval(params.pop("closedPeriods", '[]'))
   return jsonify(params)
 
 @app.route("/saveParameters", methods=["POST"])

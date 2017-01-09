@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import TimePicker from 'react-bootstrap-time-picker';
 import DatePicker from 'react-bootstrap-date-picker';
 import { Calendar } from 'react-yearly-calendar';
-import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox, Nav, NavItem, Tabs, Tab } from 'react-bootstrap';
+import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Overlay, Popover, Checkbox, Nav, NavItem } from 'react-bootstrap';
 import auth from './auth';
-import { isWeekend, isHoliday, isBankHoliday, checkStatus, parseJSON, AddressFields } from './utils';
+import { isWeekend, isHoliday, isBankHoliday, checkStatus, parseJSON, AddressFields, getAddress } from './utils';
 import moment from 'moment';
 import 'moment-range';
 import 'moment/locale/fr';
@@ -16,12 +16,24 @@ export default class Parametres extends React.Component { // eslint-disable-line
   constructor(props) {
     super(props);
 
+    moment.locale('fr');
+    
     const today = moment();
     const last_year = moment(today.add(-1, "years"));
-    this.state = { currentTab: 0, currentRange: [last_year,last_year], closedDays: [], holidays: [], busy: false, enableSave: false, opening_hours: [8,19], changesAllowed: false, applyCeiling: false, contractStart: new Date().toISOString(), contractEnd: new Date().toISOString() };
+    this.state = { currentTab: 0, 
+                   currentRange: [last_year,last_year], 
+                   closedPeriods: [], 
+                   target: undefined, periodToDelete: -1, showDeletePeriod: false,  
+                   holidays: [], 
+                   busy: true, enableSave: false, 
+                   openingHours: [8,19], 
+                   changesAllowed: false, 
+                   applyCeiling: false, 
+                   addressFields: {},
+                   contractStart: new Date().toISOString(),
+                   contractEnd: new Date().toISOString() };
 
     this.chkApplyCeiling = undefined;
-    this.addressFields = undefined;
     this.allowChanges = this.allowChanges.bind(this);
     this.setOpeningHour = this.setOpeningHour.bind(this);
     this.setClosingHour = this.setClosingHour.bind(this);
@@ -32,11 +44,7 @@ export default class Parametres extends React.Component { // eslint-disable-line
     this.addressChanged = this.addressChanged.bind(this);
     this.onPickRange = this.onPickRange.bind(this);
     this.handleTabSelect = this.handleTabSelect.bind(this);
-  }
-
-  componentWillMount() {
-    moment.locale('fr');
-    this.setState({ busy: true });
+    this.delPeriod = this.delPeriod.bind(this);
   }
 
   componentDidMount() {
@@ -59,12 +67,13 @@ export default class Parametres extends React.Component { // eslint-disable-line
     }).then(checkStatus).then(parseJSON).then((res) => {
         this.setState({ busy: false,
                        name: res.name,
-                       opening_hours: [res.opening, res.closing],
+                       closedPeriods: res.closedPeriods.map((p)=>{return moment.range(p)}),
+                       openingHours: [res.opening, res.closing],
                        changesAllowed: res.contractChangesAllowed === '1',
                        contractEnd: res.contractEnd != "" ? res.contractEnd : this.state.contractEnd,
                        contractStart: res.contractStart != "" ? res.contractStart : this.state.contractStart,
-                       applyCeiling : res.applyCeiling === '1' });
-        this.addressFields.setFormValues(res);
+                       applyCeiling : res.applyCeiling === '1',
+                       addressFields: { address1: res.address.street[0], address2: res.address.street[1], zip: res.address.zip, city: res.address.city, phone_number: res.phone_number, email: res.email } });
     });
   }
 
@@ -82,19 +91,22 @@ export default class Parametres extends React.Component { // eslint-disable-line
   }
 
   setOpeningHour(time) {
-    const hours = this.state.opening_hours;
+    const hours = this.state.openingHours;
     hours[0] = time/3600;
-    this.setState({ enableSave: true, opening_hours });
+    this.setState({ enableSave: true, openingHours: hours });
   }
 
   setClosingHour(time) {
-    const hours = this.state.opening_hours;
+    const hours = this.state.openingHours;
     hours[1] = time/3600;
-    this.setState({ enableSave: true, opening_hours });
+    this.setState({ enableSave: true, openingHours: hours });
   }
 
   addressChanged(key, value) {
-    this.setState({ enableSave: true });
+    const addressFields = this.state.addressFields;
+    addressFields[key] = value;
+
+    this.setState({ enableSave: true, addressFields });
   }
 
   save() {
@@ -105,12 +117,13 @@ export default class Parametres extends React.Component { // eslint-disable-line
       },
       credentials: 'include',
       body: JSON.stringify({ contractChangesAllowed: this.state.changesAllowed ? "1" : "0",
-                             closing: this.state.opening_hours[1],
-                             opening: this.state.opening_hours[0],
+                             closing: this.state.openingHours[1],
+                             opening: this.state.openingHours[0],
                              contractEnd: this.state.contractEnd,
                              contractStart: this.state.contractStart,
-                             applyCeiling: this.chkApplyCeiling.checked ? "1" : "0",
-                             ...this.addressFields.getData() })
+                             closedPeriods: this.state.closedPeriods.map((p)=>{ return p.toString() }),
+                             applyCeiling: this.state.applyCeiling,
+                             ...getAddress(this.state.addressFields) })
     }).then(checkStatus).then(() => {
       this.setState({ enableSave: false });
     });
@@ -128,13 +141,43 @@ export default class Parametres extends React.Component { // eslint-disable-line
     this.setState({ enableSave: true, applyCeiling: this.chkApplyCeiling.checked });
   }
 
-  onPickRange(start,end) {
-    const days = this.state.closedDays;
-    const r = moment.range(start, end);
-    r.by('days', (d)=>{
-      days.push(d);
-    });
-    this.setState({ closedDays: days });
+  onPickRange(start, end) {
+    // find element with mouse cursor on it
+    const q = document.querySelectorAll(':hover');
+    const target = q[q.length - 1];
+    if (moment(start).isAfter(moment(end))) {
+      [start, end] = [end, start];
+    }
+    const closedPeriods = this.state.closedPeriods;
+    if (moment(start).isSame(moment(end))) {
+      if (closedPeriods.some((p, i) => {
+        if (moment(start).within(p)) {
+          this.setState({ showDeletePeriod: true, periodToDelete: i, target });
+          return true; 
+        }
+        return false;
+      }));
+    }
+
+    /*if (closedPeriods.some((p)=>{return p.overlaps(moment.range(moment(start).add(-1,'days'),moment(end).add(1,"days")))})) {
+      // overlapping period
+      return;
+    }
+    */
+
+    const p = moment.range(start, end);
+    closedPeriods.push(p);
+    
+    this.setState({ enableSave: true, currentRange: [start, end], closedPeriods });
+  }
+
+  delPeriod(i) {
+    const periods = this.state.closedPeriods;
+    const today = moment();
+    const last_year = moment(today.add(-1, "years"));
+
+    periods.splice(i, 1);
+    this.setState({ enableSave: true, closedPeriods: periods, currentRange: [last_year, last_year] });
   }
 
   handleTabSelect(key) {
@@ -147,14 +190,14 @@ export default class Parametres extends React.Component { // eslint-disable-line
     }
 
     const contractYear = moment(this.state.contractStart).year();
-    const opening_hour = this.state.opening_hours[0]*3600;
-    const closing_hour = this.state.opening_hours[1]*3600;
+    const openingHour = this.state.openingHours[0]*3600;
+    const closingHour = this.state.openingHours[1]*3600;
     const contractRange = moment.range([moment(this.state.contractStart), moment(this.state.contractEnd)]);
 
     const customCss = {
       holiday: (day) => { return isHoliday(day, this.state.holidays) },
       weekend: (day) => { return isWeekend(day) || isBankHoliday(day) || !day.within(contractRange) },
-      closedDay: (day) => { return this.state.closedDays.some((d)=>{ return d.isSame(day) }) }
+      closedDay: (day) => { return this.state.closedPeriods.some((p)=>{ return moment(day).within(p) }) }
     }
 
     let contents = '';
@@ -169,7 +212,7 @@ export default class Parametres extends React.Component { // eslint-disable-line
                           </Col>
                         </FormGroup>
                     </Form>
-                    <AddressFields valueChanged={this.addressChanged} ref={(ref) => { this.addressFields = ref; }}/>
+                    <AddressFields valueChanged={this.addressChanged} formValues={this.state.addressFields}/>
                   </Col>
               </div>);
     } else if (this.state.currentTab == 1) {
@@ -185,11 +228,11 @@ export default class Parametres extends React.Component { // eslint-disable-line
                         <FormGroup>
                           <Col sm={2} componentClass={ControlLabel}>Heure ouverture</Col>
                           <Col sm={4}>
-                            <TimePicker start="6" end="21" format={24} value={opening_hour} onChange={this.setOpeningHour}/>
+                            <TimePicker start="6" end="21" format={24} value={openingHour} onChange={this.setOpeningHour}/>
                           </Col>
                           <Col sm={2} componentClass={ControlLabel}>Heure fermeture</Col>
                           <Col sm={4}>
-                            <TimePicker start='6' end='21' format={24} value={closing_hour} onChange={this.setClosingHour}/>
+                            <TimePicker start='6' end='21' format={24} value={closingHour} onChange={this.setClosingHour}/>
                           </Col>
                         </FormGroup>
                       <FormGroup>
@@ -216,7 +259,15 @@ export default class Parametres extends React.Component { // eslint-disable-line
              </div>);
     } else {
       contents = (<div style={{marginTop: '15px', position:'relative', textAlign: 'center'}}>
-           <Calendar year={contractYear} firstDayOfWeek={0} showWeekSeparators={true} selectRange selectedRange={this.state.currentRange} onPickRange={this.onPickRange}  customClasses={customCss} />
+            <Overlay show={this.state.showDeletePeriod} target={this.state.target} placement="right" container={this.refs.cal} containerPadding={20}>
+              <Popover>
+                  <div className="text-right" style={{ padding: '-5px', marginBottom: '0.5em' }}>
+                    <Button bsStyle="link" bsSize="xs" onClick={() => this.setState({showDeletePeriod: false})}>Fermer&nbsp;<Glyphicon glyph="remove" /></Button>
+                  </div>
+                  <Button bsStyle="primary" onClick={() => { return this.delPeriod(this.state.periodToDelete) }}>Supprimer période de fermeture</Button>
+              </Popover>
+            </Overlay>
+           <Calendar ref="cal" year={contractYear} firstDayOfWeek={0} showWeekSeparators={true} selectRange selectedRange={this.state.currentRange} onPickRange={this.onPickRange}  customClasses={customCss} />
         </div>);
     }
 
