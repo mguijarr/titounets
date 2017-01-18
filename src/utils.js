@@ -72,17 +72,17 @@ export class TextInput extends React.Component {
   }
 
   render() {
-    return <FormControl readOnly={this.props.readOnly} type="text" value={this.props.valueObject[this.props.valueKey]} onChange={this.textChanged} onBlur={this.textChanged}/>
+    return <FormControl readOnly={this.props.readOnly} type="text" value={this.props.valueObject[this.props.valueKey] || ""} onChange={this.textChanged} onBlur={this.textChanged}/>
   }
 }
 
 export function getAddress(formData) {
-  const address = { street: [formData.address1,
-                             formData.address2],
-                    zip: formData.zip,
-                    city: formData.city };
-  const phone_number = formData.phone_number;
-  const email = formData.email;
+  const address = { street: [formData.address1 || "",
+                             formData.address2 || ""],
+                    zip: formData.zip || "",
+                    city: formData.city || ""};
+  const phone_number = formData.phone_number || "";
+  const email = formData.email || "";
 
   return { address, phone_number, email };
 }

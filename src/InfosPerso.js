@@ -2,16 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Grid, Row, Col, Form, FormGroup, FormControl, ControlLabel, Button, Label, Glyphicon, Panel, PanelGroup, Modal, Checkbox } from 'react-bootstrap';
 import ChildData from './child.js';
-import { AddressFields, TextInput } from './utils';
 import auth from './auth';
-import { checkStatus, parseJSON, getFamilyName } from './utils';
+import { checkStatus, parseJSON, getFamilyName, AddressFields, TextInput, getAddress } from './utils';
 
 export default class InfosPerso extends React.Component { // eslint-disable-line react/prefer-stateless-function
 
   constructor(props) {
     super(props);
 
-    this.state = { busy: false, showAddFamily: false, adminView: false, families: [], family: {}, selectedFamily: null, enableSave: false, formValues: {}, showDelFamily: false };
+    this.state = { busy: false, showAddFamily: false, adminView: false, addressFields: {}, families: [], family: {}, enableSave: false, formValues: {}, showDelFamily: false };
 
     this.addFamily = this.addFamily.bind(this);
     this.doAddFamily = this.doAddFamily.bind(this);
@@ -23,7 +22,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     this.loadFamily = this.loadFamily.bind(this);
     this.synchroniseFamily = this.synchroniseFamily.bind(this);
     this.getCAFData = this.getCAFData.bind(this);
-    this.setFormValues = this.setFormValues.bind(this);
+    this.extractFormValues = this.extractFormValues.bind(this);
     this.addressChanged = this.addressChanged.bind(this);
     this.childChanged = this.childChanged.bind(this);
   }
@@ -43,7 +42,9 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
             },
             credentials: 'include'
         }).then(checkStatus).then(parseJSON).then((res) => {
-            this.setState({ families: res });
+            this.setState({ families: res.sort((a,b)=>{
+              if (getFamilyName(a) < getFamilyName(b)) { return -1 } else { return 1 };
+            })});
             this.loadFamily(null);
         });
     } else { 
@@ -51,28 +52,20 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     }
   }
 
-  setFormValues(data) {
-    const formValues = this.state.formValues;
-    
-    formValues.id = data.id;
-    formValues.qf = data.qf;
-    formValues.parent1 = data.parents[0];
-    formValues.parent2 = data.parents[1];
-    
-    this.addressFields.setFormValues(data);
-    this.setState({ formValues });
+  extractFormValues(data) {
+    const addressFields = { address1: data.address.street[0], address2: data.address.street[1], zip: data.address.zip, city: data.address.city, phone_number: data.phone_number, email: data.email };
+    const formValues = { parent1: data.parents[0], parent2: data.parents[1], qf: data.qf };
+    return {addressFields, formValues};
   }
 
   loadFamily(selectedFamily, stateDict) {
     if (stateDict === undefined) { stateDict = {} };
 
-    const formValues = { parent1: "", parent2: "", address1: "", address2: "", zip: "", city:"", qf: 0, id: 0, email: "", phone_number: "" };
-
-    this.setState({busy: true});
-
     if (! selectedFamily) {
-      this.setState({busy: false, selectedFamily, formValues});
+      const family = { id: null, children: [] };
+      this.setState({busy: false, family, formValues: { parent1: "", parent2: "", qf: 0 }, addressFields:{}, ...stateDict });
     } else {
+      this.setState({busy: true});
       fetch("/family/"+selectedFamily, {
         method: "GET",
         headers: {
@@ -88,8 +81,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
           }
         }
 
-        this.setState({ busy: false, selectedFamily, families, family: { [selectedFamily]: res }, enableSave: false, ...stateDict });
-        this.setFormValues(res);
+        this.setState({ busy: false, families, family: res, enableSave: false, ...this.extractFormValues(res), ...stateDict });
       });
     }
   }
@@ -100,22 +92,23 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
     this.setState({ enableSave: true, formValues });
   }
 
-  childChanged(child_i, key, value) {
-    const family = this.state.family;
-    const f = family[this.state.selectedFamily];
-    f.children[child_i][key] = value;
-    this.setState({ enableSave: true, family }); 
+  addressChanged(key, value) {
+    const addressFields = this.state.addressFields;
+    addressFields[key] = value;
+
+    this.setState({ enableSave: true, addressFields });
   }
 
-  addressChanged(key, value) {
-    this.setState({ enableSave: true });
+  childChanged(child_i, key, value) {
+    const family = this.state.family;
+    family.children[child_i][key] = value;
+    this.setState({ enableSave: true, family }); 
   }
 
   synchroniseFamily(id) {
     this.setState({busy: true});
     this.getCAFData(id, (data) => {
-        this.setFormValues(data);
-        this.setState({ busy: false, enableSave: true, family: { [id]: data } });
+        this.setState({ busy: false, enableSave: true, family: data, ...this.extractFormValues(data) });
     });
   }
 
@@ -137,11 +130,11 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
 
   doAddFamily(new_family) {
       const families = this.state.families;
-      const family = this.state.family;
       families.push(new_family);
-      family[new_family.id] = new_family;
-      this.setState({ families, family });
-      this.setFormValues(new_family);
+      this.setState({ families: families.sort((a,b)=>{
+          if (getFamilyName(a) < getFamilyName(b)) { return -1 } else { return 1 }; 
+        }), 
+        family: new_family, ...this.extractFormValues(new_family) });
       this.saveData(new_family.id);
   }
 
@@ -163,7 +156,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
   }
 
   delFamily() {
-    const id = this.state.selectedFamily;
+    const id = this.state.family.id; 
 
     fetch('/delfamily', {
       method: 'POST',
@@ -188,7 +181,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
       const parents = [this.state.formValues.parent1,
                        this.state.formValues.parent2];
       const qf = this.state.formValues.qf;
-      const children = this.state.family[id].children;
+      const children = this.state.family.children;
  
       fetch('/save', {
         method: 'POST',
@@ -196,9 +189,9 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
             'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify({ username: id, qf, parents, children, ...this.addressFields.getData() })
+        body: JSON.stringify({ username: id, qf, parents, children, ...getAddress(this.state.addressFields)})
       }).then(checkStatus).then((res) => {
-          const data = { id, qf, parents, children, ...this.addressFields.getData() };
+          const data = { id, qf, parents, children, ...getAddress(this.state.addressFields) };
 
           const families = this.state.families;
 
@@ -209,7 +202,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
             }
           }
 
-          this.setState({ selectedFamily: id, families, family: { [id]: data }, enableSave: false });
+          this.setState({ families, family: data, enableSave: false });
       });
     }
   }
@@ -219,7 +212,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
       return <img className="centered" src="spinner.gif"/>
     }
 
-    const family = this.state.selectedFamily ? this.state.family[this.state.selectedFamily] : { id: null, children: [] };
+    const family = Object.assign({id: null, children: [] }, this.state.family);
 
     const familiesList = (this.state.adminView ? this.state.families.map((f, i) => {
 	return (<div><Button bsStyle='link' bsSize="small" onClick={()=>{ this.loadFamily(f.id) } }>
@@ -253,7 +246,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
             <Row>
               <Col sm={12}>
                 <div className="pull-right" style={{ marginTop: '15px', marginBottom: '15px' }}>
-                  <Button bsStyle="primary" disabled={!this.state.enableSave || !this.state.selectedFamily} onClick={()=>{this.saveData(family.id)}}>Enregistrer</Button>
+                  <Button bsStyle="primary" disabled={!this.state.enableSave || !family.id} onClick={()=>{this.saveData(family.id)}}>Enregistrer</Button>
                 </div>
               </Col>
             </Row>
@@ -266,7 +259,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
                   </Col>
                   <Col sm={2}>
                     { this.state.adminView ? (
-                      <Button bsStyle="primary" disabled={!this.state.selectedFamily} onClick={()=>{this.synchroniseFamily(family.id)}}><Glyphicon glyph="refresh"/>&nbsp;Synchroniser CAF</Button>
+                      <Button bsStyle="primary" disabled={!family.id} onClick={()=>{this.synchroniseFamily(family.id)}}><Glyphicon glyph="refresh"/>&nbsp;Synchroniser CAF</Button>
                     ) : "" }
                   </Col>
                   <Col sm={2} componentClass={ControlLabel}>QF</Col>
@@ -288,7 +281,7 @@ export default class InfosPerso extends React.Component { // eslint-disable-line
                 </FormGroup>
              </Form>
           </Row>
-          <AddressFields valueChanged={this.addressChanged} ref={(c)=>{this.addressFields=c}}/>
+          <AddressFields valueChanged={this.addressChanged} formValues={this.state.addressFields}/>
           <Row>
             <Col sm={12}>
               <h3>Enfants</h3>

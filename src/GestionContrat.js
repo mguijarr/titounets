@@ -114,7 +114,9 @@ export default class GestionContrat extends React.Component { // eslint-disable-
       }).then(checkStatus).then(parseJSON).then((res) => {
             const family = {};
             res.forEach((f)=>{ family[f.id]=f });
-            this.setState({ families: res, family, busy:false });
+            this.setState({ families: res.sort((a,b)=>{
+              if (getFamilyName(a) < getFamilyName(b)) { return -1 } else { return 1 };
+            }), family, busy:false });
       });
     } else if (auth.loggedIn()) {
       this.setState({familyId: auth.familyId()});
