@@ -1,8 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { Form, FormGroup, FormControl, ControlLabel, Button } from 'react-bootstrap';
-import auth from './auth';
-import { withRouter } from 'react-router';
+import React from "react";
+import ReactDOM from "react-dom";
+import {
+  Form,
+  FormGroup,
+  FormControl,
+  ControlLabel,
+  Button
+} from "react-bootstrap";
+import auth from "./auth";
+import { withRouter } from "react-router";
 
 class Login extends React.Component {
   constructor(props) {
@@ -16,11 +22,15 @@ class Login extends React.Component {
 
   updateLoginState(loggedIn) {
     this.setState({ loggedIn, admin: auth.admin() });
-    if (!loggedIn) { this.props.router.push('/'); }
+    if (!loggedIn) {
+      this.props.router.push("/");
+    }
   }
 
   keyUp(target) {
-    if (target.keyCode === 13) { return this.signIn(); }
+    if (target.keyCode === 13) {
+      return this.signIn();
+    }
   }
 
   signIn() {
@@ -35,13 +45,39 @@ class Login extends React.Component {
 
   render() {
     if (this.state.loggedIn) {
-      return (<span style={{ padding: '15px' }}><Button className="navbar-btn btn-danger btn-sm" onClick={this.signOut}>D&eacute;connecter</Button></span>);
+      return (
+        <span style={{ padding: "15px" }}>
+          <Button
+            className="navbar-btn btn-danger btn-sm"
+            onClick={this.signOut}
+          >
+            Déconnecter
+          </Button>
+        </span>
+      );
     } else {
-      return (<form className="navbar-form" action="">
-                    <FormControl type="text" ref="username" name="username" placeholder="Nom d'utilisateur" />{' '}
-                    <FormControl type="password" ref="password" name="password" placeholder="Mot de passe" onKeyUp={this.keyUp}/>{' '}
-                    <Button bsStyle="info" bsSize="sm" onClick={this.signIn}>Connexion</Button>
-                </form>);
+      return (
+        <form className="navbar-form" action="">
+          <FormControl
+            type="text"
+            ref="username"
+            name="username"
+            placeholder="Nom d'utilisateur"
+          />
+          {" "}
+          <FormControl
+            type="password"
+            ref="password"
+            name="password"
+            placeholder="Mot de passe"
+            onKeyUp={this.keyUp}
+          />
+          {" "}
+          <Button bsStyle="info" bsSize="sm" onClick={this.signIn}>
+            Connexion
+          </Button>
+        </form>
+      );
     }
   }
 }
@@ -49,4 +85,3 @@ class Login extends React.Component {
 var LoginForm = withRouter(Login);
 
 export default LoginForm;
-

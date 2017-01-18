@@ -9,10 +9,10 @@
  * the linting exception.
  */
 
-import React from 'react';
+import React from "react";
 
-export default class HomePage extends React.Component { // eslint-disable-line react/prefer-stateless-function
-
+export default class HomePage extends React.Component {
+  // eslint-disable-line react/prefer-stateless-function
   render() {
     return (
       <h1>
