@@ -32,6 +32,9 @@
     },
     "pdfmake-fonts-cdn": {
       "build": false
+    },
+    "jquery-cdn": {
+      "build": false
     }
   }
 }
