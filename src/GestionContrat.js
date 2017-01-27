@@ -22,8 +22,8 @@ import {
   InputGroup,
   FormControl
 } from "react-bootstrap";
-import "./css/GestionContrat.css!";
-import "./css/calendar.css!";
+import "./css/GestionContrat.css";
+import "./css/calendar.css";
 import auth from "./auth";
 import {
   isClosed,
@@ -33,8 +33,7 @@ import {
   findDays,
   getFamilyName
 } from "./utils";
-import "pdfmake";
-import "pdfmake-fonts";
+import "../node_modules/pdfmake/build/pdfmake.min.js";
 import Contract from "./contrat";
 import TimeTable from "./timeTable";
 

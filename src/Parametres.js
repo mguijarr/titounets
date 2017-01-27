@@ -34,7 +34,7 @@ import {
 import moment from "moment";
 import "moment-range";
 import "moment/locale/fr";
-import "./css/calendar.css!";
+import "./css/calendar.css";
 
 class Parametres extends React.Component {
   // eslint-disable-line react/prefer-stateless-function

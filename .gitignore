@@ -2,7 +2,6 @@
 coverage
 build
 node_modules
-jspm_packages
 stats.json
 app.js
 *js.map
