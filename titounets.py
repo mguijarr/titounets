@@ -1,4 +1,5 @@
 from flask import Flask, session, request, jsonify, make_response
+from flask_compress import Compress
 from flask_session import Session
 import redis
 import os
@@ -14,6 +15,7 @@ password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").re
 db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
 
 app = Flask("titounets", static_url_path='', static_folder='')
+Compress(app)
 SESSION_TYPE = 'redis'
 SESSION_REDIS = db
 app.config.from_object(__name__)
