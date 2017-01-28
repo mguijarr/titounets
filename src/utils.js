@@ -6,7 +6,8 @@ import {
   Form,
   FormGroup,
   FormControl,
-  ControlLabel
+  ControlLabel,
+  Glyphicon
 } from "react-bootstrap";
 import moment from "moment";
 import "moment-range";
@@ -67,6 +68,61 @@ export function getFamilyName(familyData) {
   });
 
   return Object.keys(names).join(" / ");
+}
+
+export class TimePicker extends React.Component {
+  constructor(props) {
+    super(props);
+    
+    this.calcStartEndMinutes = this.calcStartEndMinutes.bind(this);
+
+    this.state = { ...this.calcStartEndMinutes(props), value: props.value*3600 };
+  }
+
+  calcStartEndMinutes(props) {
+    /*const startDate = new Date('1980-05-08T'+props.start+':00.000+02:00');
+    const sH = startDate.getHours(); const sM = startDate.getMinutes();
+    const endDate = new Date('1980-05-08T'+props.end+':00.000+02:00');
+    const eH = endDate.getHours(); const eM = endDate.getMinutes();*/
+    // props.start and props.end are given in hours (9.5 = 9h30)
+    const start = props.start*3600;
+    const end = props.end*3600;
+
+    return { start, end, step: props.step || 30 };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({ ...this.calcStartEndMinutes(nextProps) });
+  }
+
+  onChange(time) {
+    // time is in internally stored in seconds
+    //this.setState({ value: time });
+    // value for callback is in hours
+    this.props.onChange(time / 3600);
+  }
+
+  render() {
+    const clockTime = [];
+    const seconds = [];
+
+    for (let s = this.state.start; s<=this.state.end; s+=(this.state.step*60)) {
+      seconds.push(s);
+
+      const hh = Math.floor(s / 3600);
+      const mm = Math.floor((s - hh*3600) / 60);
+
+      clockTime.push(("0" + hh).slice(-2)+":"+("0" + mm).slice(-2)); 
+    }
+
+    return (<FormGroup>
+      <FormControl componentClass="select" 
+                   onChange = {(e) => { this.onChange(parseInt(e.target.value, 10)); }}
+                   value = {this.state.value}>
+        {clockTime.map((hhmm, i) => { return <option key={i} value={seconds[i]}>{hhmm}</option> }) }
+      </FormControl>
+    </FormGroup>);
+  }
 }
 
 export class TextInput extends React.Component {

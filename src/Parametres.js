@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import TimePicker from "react-bootstrap-time-picker";
 import DatePicker from "react-bootstrap-date-picker";
 import { Calendar } from "react-yearly-calendar";
 import {
@@ -28,7 +27,8 @@ import {
   checkStatus,
   parseJSON,
   AddressFields,
-  getAddress
+  getAddress,
+  TimePicker
 } from "./utils";
 import moment from "moment";
 import "moment-range";
@@ -138,13 +138,13 @@ export default class Parametres extends React.Component {
 
   setOpeningHour(time) {
     const hours = this.state.openingHours;
-    hours[0] = time / 3600;
+    hours[0] = time;
     this.setState({ enableSave: true, openingHours: hours });
   }
 
   setClosingHour(time) {
     const hours = this.state.openingHours;
-    hours[1] = time / 3600;
+    hours[1] = time;
     this.setState({ enableSave: true, openingHours: hours });
   }
 
@@ -326,7 +326,6 @@ export default class Parametres extends React.Component {
                   <TimePicker
                     start="6"
                     end="21"
-                    format={24}
                     value={openingHour}
                     onChange={this.setOpeningHour}
                   />
@@ -336,7 +335,6 @@ export default class Parametres extends React.Component {
                   <TimePicker
                     start="6"
                     end="21"
-                    format={24}
                     value={closingHour}
                     onChange={this.setClosingHour}
                   />

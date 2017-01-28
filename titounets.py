@@ -121,10 +121,10 @@ def get_children(date):
 def get_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         family = extract_family_data(username)
-        res = list()
+        res = dict()
         for i, c in enumerate(family['children']):
-           key = "%d:children:%s:periods" % (username, i) #c["name"])
-           res.append({ "name": c["name"], "periods": map(json.loads, db.lrange(key, 0, -1)) or [] })
+           key = "%d:children:%s:periods" % (username, i) 
+           res[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
 
         return jsonify(res)
     else:
@@ -135,10 +135,10 @@ def set_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         periods = request.get_json()
         family_data = extract_family_data(username)
-        for p in periods:
-           i = [p["name"]==c["name"] for c in family_data["children"]].index(True)
+        for child_name in periods:
+           i = [child_name==c["name"] for c in family_data["children"]].index(True)
            key = "%d:children:%s:periods" % (username, i)
-           plist = map(json.dumps, p["periods"])
+           plist = map(json.dumps, periods[child_name])
            with db.pipeline() as P:
                P.delete(key)
                if plist:

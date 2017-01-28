@@ -47,36 +47,48 @@ export default class GestionContrat extends React.Component {
       show: false,
       showEdit: false,
       holidays: [],
-      childPeriod: {},
+      editedPeriod: {},
       currentRange: [ last_year, last_year ],
-      currentTimeTable: {},
+      editedTimeTable: {},
       name: "",
-      opening_time: "8",
-      closing_time: "20",
+      openingTime: 0,
+      closingTime: 0,
       contractYear: 2016,
       contractRange: moment.range(last_year, last_year),
       enabled: false,
-      periods: [],
+      periods: {},
+      childOrder2Name: {},
       address: {},
       familyId: -1,
       family: {},
       families: []
     };
 
-    this.childCheckbox = {};
     this.onPickRange = this.onPickRange.bind(this);
     this.addPeriod = this.addPeriod.bind(this);
     this.changePeriod = this.changePeriod.bind(this);
     this.savePeriods = this.savePeriods.bind(this);
     this.getPeriods = this.getPeriods.bind(this);
     this.checkChildForDay = this.checkChildForDay.bind(this);
-    this.refinePeriods = this.refinePeriods.bind(this);
     this.deletePeriod = this.deletePeriod.bind(this);
     this.closeEdit = this.closeEdit.bind(this);
     this.familySelected = this.familySelected.bind(this);
     this.editContract = this.editContract.bind(this);
     this.contractYearPeriods = this.contractYearPeriods.bind(this);
     this.timeTableChanged = this.timeTableChanged.bind(this);
+    this.findDays = this.findDays.bind(this);
+  }
+
+  findDays(period) {
+    const days = [undefined,undefined,undefined,undefined,undefined];
+    if (period === undefined) {
+      findDays(this.state.currentRange).forEach((d)=>{ days[d-1] = [this.state.openingTime, this.state.closingTime]; });
+    } else {
+      for (const d in period.timetable) {
+        days[d-1] = period.timetable[d];
+      }
+    }
+    return days; 
   }
 
   getPeriods(familyId) {
@@ -89,12 +101,16 @@ export default class GestionContrat extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        res.forEach(c => {
-          c.periods.forEach((p, i) => {
-            c.periods[i] = moment.range(p.start, p.end);
+        const childOrder2Name = {};
+        let i = 0;
+        for (const childName of Object.keys(res)) {
+          childOrder2Name[i] = childName; i++;
+          res[childName].forEach(p => {
+            p.range = moment.range(p.range.start, p.range.end);
           });
-        });
-        this.setState({ busy: false, periods: res });
+        }
+        // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
+        this.setState({ busy: false, childOrder2Name, periods: res });
       });
   }
 
@@ -120,8 +136,8 @@ export default class GestionContrat extends React.Component {
         this.setState({
           contractYear: contractStart.year(),
           contractRange: moment.range(contractStart, contractEnd),
-          opening_time: res.opening,
-          closing_time: res.closing,
+          openingTime: res.opening,
+          closingTime: res.closing,
           enabled: res.contractChangesAllowed === "1",
           address: res.address,
           name: res.name
@@ -177,88 +193,47 @@ export default class GestionContrat extends React.Component {
     this.getPeriods(familyId);
   }
 
-  refinePeriods(periods) {
-    const nperiods = periods.length;
-    for (let j = 0; j < periods.length; j++) {
-      const a = periods[j].range;
-      for (let k = 0; k < periods.length; k++) {
-        if (j === k) {
-          continue;
-        }
-        //if (JSON.stringify(periods[j].timetable) === JSON.stringify(periods[k].timetable)) {
-        const b = periods[k].range;
-        const aend = moment(a.end).add(1, "d");
-        let new_range;
-        if (
-          aend.isSame(b.start, "day") ||
-            isWeekend(aend) && moment(b.start).add(-2, "d").isSame(aend, "day")
-        ) {
-          new_range = moment.range(a.start, b.end);
-        } else {
-          // new_range will be null if the two ranges do not intersect
-          new_range = a.add(b);
-        }
-        if (new_range != null) {
-          periods[j] = {
-            range: new_range,
-            timetable: Object.assign(periods[j].timetable, periods[k].timetable)
-          };
-          periods.splice(k, 1);
-        }
-        //}
+  addPeriod() {
+    const periods = this.state.periods;
+    const newRange = moment.range(...this.state.currentRange);
+
+    for (const childName of Object.keys(periods)) {
+      if (this.childCheckbox[childName].checked) {
+        periods[childName].push({
+          range: newRange,
+          timetable: this.state.editedTimeTable[childName]
+        });
       }
-    }
-    if (periods.length < nperiods) {
-      return this.refinePeriods(periods);
-    } else {
-      return periods;
-    }
-  }
-
-  addPeriod(child) {
-    const p = this.state.periods;
-    const new_range = moment.range(...this.state.currentRange);
-
-    if (Object.values(this.state.currentTimeTable).some(x => {
-        return x;
-      })) {
-      p.forEach(c => {
-        if (
-          child === undefined && this.childCheckbox[c.name].checked ||
-            child === c
-        ) {
-          c.periods.push({
-            range: new_range,
-            timetable: this.state.currentTimeTable
-          });
-          //c.periods = this.refinePeriods(c.periods);
-        }
-      });
     }
 
     const currentRange = [
       moment().add(-1, "years"),
       moment().add(-1, "years")
     ];
-    this.setState({ show: false, currentRange, periods: p });
+
+    this.setState({ show: false, currentRange, periods });
   }
 
   closeEdit() {
     this.setState({ showEdit: false, show: false });
   }
 
-  deletePeriod(child, i) {
-    const p = this.state.periods;
+  deletePeriod(editedPeriod) {
+    const periods = this.state.periods;
+    for (const childName of Object.keys(editedPeriod)) {
+      const i = editedPeriod[childName];
+      const p = periods[childName];
 
-    child.periods.splice(i, 1);
+      p.splice(i, 1);
+    }
 
-    this.setState({ periods: p });
+    this.setState({ periods });
     this.closeEdit();
   }
 
-  changePeriod(child, i) {
-    this.deletePeriod(child, i);
-    this.addPeriod(child);
+  changePeriod(editedPeriod) {
+    this.deletePeriod(editedPeriod);
+    this.addPeriod();
   }
 
   savePeriods(familyId) {
@@ -278,36 +253,36 @@ export default class GestionContrat extends React.Component {
       [ start, end ] = [ end, start ];
     }
     if (moment(start).isSame(moment(end))) {
-      const childPeriod = {};
+      const editedPeriod = {};
       let p = null;
-      for (let i = 0; i < this.state.periods.length; i++) {
-        let child = this.state.periods[i];
-        for (let j = 0; j < child.periods.length; j++) {
-          p = child.periods[j];
+      for (const childName of Object.keys(this.state.periods)) {
+        const periods = this.state.periods[childName];
+        for (let j = 0; j < periods.length; j++) {
+          p = periods[j];
           if (moment(start).within(p.range)) {
-            childPeriod[child.name] = p;
+            editedPeriod[childName] = j;
             break;
           }
         }
       }
-      if (p) {
+      if (Object.keys(editedPeriod).length > 0) {
         this.setState({
           showEdit: true,
           currentRange: [ p.range.start, p.range.end ],
-          childPeriod,
+          editedPeriod,
           target
         });
         return;
       }
     }
-    if (this.state.periods.some(c => {
-        return c.periods.some(p => {
-          return p.range.overlaps(
-            moment.range(
+    const pickedRange = moment.range(
               moment(start).add(-1, "days"),
               moment(end).add(1, "days")
             )
-          );
+
+    if (Object.keys(this.state.periods).some(childName => {
+        return this.state.periods[childName].some(p => {
+          return p.range.overlaps(pickedRange);
         });
       })) {
       console.log("overlaps");
@@ -316,14 +291,14 @@ export default class GestionContrat extends React.Component {
     this.setState({ show: true, currentRange: [ start, end ], target });
   }
 
-  checkChildForDay(day, child_index) {
-    if (this.state.periods.length > child_index) {
+  checkChildForDay(day, childIndex) {
+    if (Object.keys(this.state.childOrder2Name).length > childIndex) {
       if (isWeekend(day)) {
         return false;
       }
-      for (const p of this.state.periods[child_index].periods) {
-        const r = moment.range(p.range.start, p.range.end);
-        if (day._isValid && day.within(r)) {
+      const childName = this.state.childOrder2Name[childIndex];
+      for (const p of this.state.periods[childName]) {
+        if (day._isValid && day.within(p.range)) {
           if (p.timetable[day.weekday() + 1]) {
             return true;
           }
@@ -334,9 +309,9 @@ export default class GestionContrat extends React.Component {
     return false;
   }
 
-  contractYearPeriods(child_i) {
-    return this.state.periods[child_i].periods.filter(x => {
-      return x.range.end.year() === this.state.contractYear;
+  contractYearPeriods(childName) {
+    return this.state.periods[childName].filter(p => {
+      return p.range.end.year() === this.state.contractYear;
     });
   }
 
@@ -345,8 +320,8 @@ export default class GestionContrat extends React.Component {
     let f = this.state.family[this.state.familyId];
     let content = [];
 
-    f.children.forEach((child, i) => {
-      const periods = this.contractYearPeriods(i);
+    f.children.forEach(child => {
+      const periods = this.contractYearPeriods(child.name);
       if (periods.length > 0) {
         content.push(
           ...c.getContents(
@@ -360,7 +335,7 @@ export default class GestionContrat extends React.Component {
         );
       }
     });
-
+  
     let docDefinition = {
       content,
       styles: {
@@ -377,8 +352,16 @@ export default class GestionContrat extends React.Component {
     //pdfMake.createPdf(docDefinition).download();
   }
 
-  timeTableChanged(timetable) {
-    this.setState({ currentTimeTable: timetable });
+  timeTableChanged(timetable, childName) {
+    const editedTimeTable = this.state.editedTimeTable;
+    if (childName === undefined) {
+      for (const childName of Object.keys(this.state.periods)) {
+          editedTimeTable[childName] = timetable;
+      }
+    } else {
+      editedTimeTable[childName] = timetable;
+    }
+    this.setState({ editedTimeTable });
   }
 
   render() {
@@ -441,8 +424,8 @@ export default class GestionContrat extends React.Component {
           this.checkChildForDay(day, 2);
       },
       beginPeriod: day => {
-        for (const child of this.state.periods) {
-          for (const p of child.periods) {
+        for (const childName of Object.keys(this.state.periods)) {
+          for (const p of this.state.periods[childName]) {
             if (day.isSame(p.range.start)) {
               return true;
             }
@@ -450,8 +433,8 @@ export default class GestionContrat extends React.Component {
         }
       },
       endPeriod: day => {
-        for (const child of this.state.periods) {
-          for (const p of child.periods) {
+        for (const childName of Object.keys(this.state.periods)) {
+          for (const p of this.state.periods[childName]) {
             if (day.isSame(p.range.end)) {
               return true;
             }
@@ -459,8 +442,8 @@ export default class GestionContrat extends React.Component {
         }
       },
       period: day => {
-        for (const child of this.state.periods) {
-          for (const p of child.periods) {
+        for (const childName of Object.keys(this.state.periods)) {
+          for (const p of this.state.periods[childName]) {
             if (day.isSame(p.range.start) || day.isSame(p.range.end)) {
               return false;
             }
@@ -570,22 +553,22 @@ export default class GestionContrat extends React.Component {
                 </div>
                 {title}
                 <div>
-                  {this.state.periods.map((child, i) => {
+                  {Object.keys(this.state.periods).map((childName, i) => {
                       return (
                         <Checkbox
                           key={i}
                           defaultChecked
                           inputRef={c => {
-                              this.childCheckbox[child.name] = c;
+                              this.childCheckbox[childName] = c;
                             }}
-                        >{child.name}</Checkbox>
+                        >{childName}</Checkbox>
                       );
                     })}
                   <div style={{ marginTop: "0.5em" }}>
                     <TimeTable
-                      days={findDays(this.state.currentRange)}
-                      openingTime={this.state.opening_time}
-                      closingTime={this.state.closing_time}
+                      days={this.findDays()}
+                      openingTime={this.state.openingTime}
+                      closingTime={this.state.closingTime}
                       onChange={this.timeTableChanged}
                     />
                   </div>
@@ -607,21 +590,24 @@ export default class GestionContrat extends React.Component {
             <Modal.Title>{title}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            {this.state.periods.map((child, i) => {
+            {Object.keys(this.state.periods).map((childName, i) => {
+                const periodIndex = this.state.editedPeriod[childName];
+                const period = this.state.periods[childName][periodIndex];
+
                 return (
                   <div style={{ marginTop: "0.5em" }}>
                     <Checkbox
                       key={i}
-                      checked={this.state.childPeriod[child.name]}
+                      defaultChecked={periodIndex!==undefined}
                       inputRef={c => {
-                          this.childCheckbox[child.name] = c;
+                          this.childCheckbox[childName] = c;
                         }}
-                    >{child.name}>{child.name}</Checkbox>
+                    >{childName}</Checkbox>
                     <TimeTable
-                      days={findDays(this.state.currentRange)}
-                      openingTime={this.state.opening_time}
-                      closingTime={this.state.closing_time}
-                      onChange={this.timeTableChanged}
+                      days={this.findDays(period)}
+                      openingTime={this.state.openingTime}
+                      closingTime={this.state.closingTime}
+                      onChange={(timetable)=>this.timeTableChanged(timetable, childName)}
                     />
                   </div>
                 );
@@ -631,12 +617,12 @@ export default class GestionContrat extends React.Component {
             <Button
               bsStyle="primary"
               onClick={() => {
-                  this.changePeriod(...this.state.childPeriod);
+                  this.changePeriod(this.state.editedPeriod);
                 }}
             >Changer</Button>
             <Button
               onClick={() => {
-                  this.deletePeriod(...this.state.editedPeriod);
+                  this.deletePeriod(this.state.editedPeriod);
                 }}
             >Supprimer</Button>
           </Modal.Footer>

@@ -22,7 +22,7 @@ export default class Contract {
       familyName = familyName1 + " / " + familyName2;
     }
     const birthDate = moment(new Date(child.birthdate)).format("L");
-    const p = [];
+    const periods = [];
     let nHours = 0;
     let nMonths = 0;
     let nHoursMonth = 0;
@@ -49,48 +49,34 @@ export default class Contract {
     let rate = monthlyIncome * CAFrate / 100.;
     let monthlyAmount = 0;
 
-    childPeriods = childPeriods.sort((ra, rb) => {
-      if (ra.start < rb.start) {
+    childPeriods = childPeriods.sort((pa, pb) => {
+      if (pa.range.start < pb.range.start) {
         return -1;
-      } else if (ra.start == rb.start) {
+      } else if (pa.range.start == pb.range.start) {
         return 0;
       } else {
         return 1;
       }
     });
 
-    childPeriods.forEach((range, i) => {
-      const periodDays = findDays([ range.start, range.end ]);
-      const days = [];
-      periodDays.forEach((d, i) => {
-        days.push(this.jours[d - 1]);
-      });
-      p.push([
-        range.start.format("L"),
-        range.end.format("L"),
-        days.join(),
-        range.start.format("LT"),
-        range.end.format("LT")
-      ]);
+    childPeriods.forEach((p, i) => {
+      periods.push([p.range.start.format("L"), p.range.end.format("L"), "", "", ""]);
+      const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
 
-      range.by("days", d => {
-        if (periodDays.includes("" + (d.weekday() + 1))) {
-          const sh = range.start.hours() * 3600;
-          const sm = range.start.minutes() * 60;
-          const eh = range.end.hours() * 3600;
-          const em = range.end.minutes() * 60;
-          const duration = eh + em - (sh + sm);
-          const dh = Math.floor(duration / 3600);
-          const dm = Math.floor((duration - dh * 3600) / 60);
-          nHours += dh + dm;
+      days.forEach(d => {
+        const hour = p.timetable[d];
+        if (hour) {
+          periods.push(["","", this.jours[d-1], hour[0], hour[1]]);
         }
       });
     });
 
+    console.log(periods);
+
     if (childPeriods.length >= 1) {
       const r = moment.range(
-        childPeriods[0].start,
-        childPeriods[childPeriods.length - 1].end
+        childPeriods[0].range.start,
+        childPeriods[childPeriods.length - 1].range.end
       );
       r.by("months", m => {
         nMonths += 1;
@@ -186,10 +172,10 @@ export default class Contract {
       {
         table: {
           style: "lightHorizontalLines",
-          body: [ [ "Du", "Au", "Jours", "de", "\xE0" ], ...p ]
+          body: [ [ "Du", "Au", "Jours", "de", "\xE0" ], ...periods ]
         }
       },
-      { text: " ", pageBreak: p.length > 13 ? "after" : null },
+      { text: " ", pageBreak: periods.length > 13 ? "after" : null },
       {
         columns: [
           { text: "Nb d'heures:", width: "20%" },
@@ -220,3 +206,4 @@ export default class Contract {
     ];
   }
 }
+

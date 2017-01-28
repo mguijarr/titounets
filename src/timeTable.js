@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { Table, Glyphicon, Checkbox } from "react-bootstrap";
-import TimePicker from "react-bootstrap-time-picker";
+import { TimePicker } from "./utils";
 import moment from "moment";
 
 class DayRow extends React.Component {
@@ -9,15 +9,20 @@ class DayRow extends React.Component {
     super(props);
 
     this.state = {
-      currentStartTime: this.props.openingTime,
-      currentEndTime: this.props.closingTime
+      currentStartTime: props.startTime,
+      currentEndTime: props.endTime
     };
+ 
     this.handleStartTimeChange = this.handleStartTimeChange.bind(this);
     this.handleEndTimeChange = this.handleEndTimeChange.bind(this);
     this.daySelectionChanged = this.daySelectionChanged.bind(this);
     this.checkbox = null;
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({ currentStartTime: nextProps.startTime, currentEndTime: nextProps.endTime });
+  }
+  
   handleStartTimeChange(time) {
     this.setState({ currentStartTime: time });
     this.props.onChange(this.checkbox.checked, time, this.state.currentEndTime);
@@ -45,7 +50,7 @@ class DayRow extends React.Component {
       <tr>
         <td style={{ textAlign: "left" }}>
           <Checkbox
-            defaultChecked
+            defaultChecked={this.props.checked}
             inputRef={c => {
                 this.checkbox = c;
               }}
@@ -56,16 +61,14 @@ class DayRow extends React.Component {
           <TimePicker
             start={this.props.openingTime}
             end={this.props.closingTime}
-            format={24}
             value={this.state.currentStartTime}
             onChange={this.handleStartTimeChange}
           />
         </td>
         <td>
           <TimePicker
-            start={this.state.openingTime}
-            end={this.state.closingTime}
-            format={24}
+            start={this.props.openingTime}
+            end={this.props.closingTime}
             value={this.state.currentEndTime}
             onChange={this.handleEndTimeChange}
           />
@@ -83,9 +86,9 @@ export default class TimeTable extends React.Component {
   }
 
   componentDidMount() {
-    this.timeTable = { 1: null, 2: null, 3: null, 4: null, 5: null };
+    this.timeTable = { 1: undefined, 2: undefined, 3: undefined, 4: undefined, 5: undefined };
     this.props.days.forEach((d, i) => {
-      this.timeTable[d] = [ this.props.openingTime, this.props.closingTime ];
+      this.timeTable[i+1] = d;
     });
     this.props.onChange(this.timeTable);
   }
@@ -102,7 +105,7 @@ export default class TimeTable extends React.Component {
 
   render() {
     const weekdays = moment.weekdays(true);
-
+    
     return (
       <Table striped bordered condensed hover>
         <thead>
@@ -117,14 +120,29 @@ export default class TimeTable extends React.Component {
           </tr>
         </thead>
         <tbody>
-          {this.props.days.map(d => {
+          {this.props.days.map((d,i) => {
+              console.log(d);
+              // d is undefined means 'no day within range',
+              // d is null means 'not selected',
+              // otherwise d contains start,end
+              let start = this.props.openingTime;
+              let end = this.props.closingTime;
+              if (d === undefined) { return };
+              if (d !== null) {
+                start  = d[0];
+                end = d[1];
+              }
+
               return (
                 <DayRow
-                  day={weekdays[d - 1]}
+                  day={weekdays[i]}
+                  startTime={start}
+                  endTime={end}
                   openingTime={this.props.openingTime}
                   closingTime={this.props.closingTime}
+                  checked={d!==null}
                   onChange={(checked, startTime, endTime) => {
-                      this.dayChanged(d, checked, startTime, endTime);
+                      this.dayChanged(i+1, checked, startTime, endTime);
                     }}
                 />
               );

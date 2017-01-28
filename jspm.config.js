@@ -8,9 +8,9 @@ SystemJS.config({
     "baseURL": "/",
     "production": true,
     "paths": {
-      "react-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react.min.js",
-      "react-dom-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react-dom.min.js",
-      "react-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.7/react-bootstrap.min.js",
+      //"react-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react.min.js",
+      //"react-dom-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react-dom.min.js",
+      //"react-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.7/react-bootstrap.min.js",
       "react-router-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-router/3.0.0/ReactRouter.min.js",
       "react-router-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-router-bootstrap/0.23.1/ReactRouterBootstrap.min.js",
       "bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js",
@@ -70,7 +70,8 @@ SystemJS.config({
   },
   map: {
     "jquery": "jquery-stub.js",
-    "bootstrap-slider": "npm:bootstrap-slider@9.5.3"
+    "bootstrap-slider": "npm:bootstrap-slider@9.5.3",
+    "pdfmake-fonts": "pdfmake-fonts-cdn"
   }
 });
 
@@ -97,16 +98,13 @@ SystemJS.config({
     "moment-range": "npm:moment-range@2.2.0",
     "os": "npm:jspm-nodelibs-os@0.2.0",
     "path": "npm:jspm-nodelibs-path@0.2.1",
-    //"pdfmake": "github:bpampuch/pdfmake@0.1.20",
     "pdfmake": "pdfmake-cdn",
-    "pdfmake-fonts": "pdfmake-fonts-cdn",
     "process": "npm:jspm-nodelibs-process@0.2.0",
-    "react": "react-cdn",
+    "react": "npm:react@15.4.1",
     "react-bootstrap": "npm:react-bootstrap@0.30.7",
     "react-bootstrap-date-picker": "npm:react-bootstrap-date-picker@4.0.0",
     "react-bootstrap-slider": "npm:react-bootstrap-slider@1.1.3",
-    "react-bootstrap-time-picker": "npm:react-bootstrap-time-picker@1.0.1",
-    "react-dom": "react-dom-cdn",
+    "react-dom": "npm:react-dom@15.4.1",
     "react-router": "react-router-cdn",
     "react-router-bootstrap": "react-router-bootstrap-cdn",
     "react-yearly-calendar": "npm:react-yearly-calendar@1.1.5",
@@ -475,10 +473,5 @@ SystemJS.config({
         "es6bindall": "npm:es6bindall@0.0.9"
       }
     },
-    "npm:react-bootstrap-time-picker@1.0.1": {
-      "map": {
-        "time-number": "npm:time-number@1.0.0"
-      }
-    }
   }
 });
