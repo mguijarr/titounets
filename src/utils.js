@@ -70,6 +70,14 @@ export function getFamilyName(familyData) {
   return Object.keys(names).join(" / ");
 }
 
+export function formatClockTime(s) {
+  // return 'hh:mm' string from s seconds
+  const hh = Math.floor(s / 3600);
+  const mm = Math.floor((s - hh*3600) / 60);
+
+  return ("0" + hh).slice(-2)+":"+("0" + mm).slice(-2); 
+}
+
 export class TimePicker extends React.Component {
   constructor(props) {
     super(props);
@@ -96,8 +104,8 @@ export class TimePicker extends React.Component {
   }
 
   onChange(time) {
-    // time is in internally stored in seconds
-    //this.setState({ value: time });
+    // time is internally stored in seconds
+    this.setState({ value: time });
     // value for callback is in hours
     this.props.onChange(time / 3600);
   }
@@ -108,11 +116,7 @@ export class TimePicker extends React.Component {
 
     for (let s = this.state.start; s<=this.state.end; s+=(this.state.step*60)) {
       seconds.push(s);
-
-      const hh = Math.floor(s / 3600);
-      const mm = Math.floor((s - hh*3600) / 60);
-
-      clockTime.push(("0" + hh).slice(-2)+":"+("0" + mm).slice(-2)); 
+      clockTime.push(formatClockTime(s));
     }
 
     return (<FormGroup>

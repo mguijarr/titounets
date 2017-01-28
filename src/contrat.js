@@ -1,4 +1,4 @@
-import { findDays } from "./utils";
+import { formatClockTime } from "./utils";
 import moment from "moment";
 
 export default class Contract {
@@ -25,7 +25,8 @@ export default class Contract {
     const periods = [];
     let nHours = 0;
     let nMonths = 0;
-    let nHoursMonth = 0;
+    //let nHoursMonth = 0;
+    let nDays = 0;
     const monthlyIncome = Number(family.qf / 12).toFixed(2);
     const rates = [
       0,
@@ -63,17 +64,26 @@ export default class Contract {
       periods.push([p.range.start.format("L"), p.range.end.format("L"), "", "", ""]);
       const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
 
+      const r = moment.range(p.range.start, p.range.end);
+      r.by("days", d => {
+        // if d is not a bank holiday or a closed day !!!! TODO
+        const hour = p.timetable[d.weekday()+1];
+        if (hour) {
+          nHours += hour[1] - hour[0];
+          nDays += 1;
+        }
+      });
+
       days.forEach(d => {
         const hour = p.timetable[d];
         if (hour) {
-          periods.push(["","", this.jours[d-1], hour[0], hour[1]]);
+          periods.push(["","", this.jours[d-1], formatClockTime(hour[0]*3600), formatClockTime(hour[1]*3600)]);
         }
       });
     });
 
-    console.log(periods);
-
-    if (childPeriods.length >= 1) {
+    // find nb of months (over the full presence period)
+    /*if (childPeriods.length >= 1) {
       const r = moment.range(
         childPeriods[0].range.start,
         childPeriods[childPeriods.length - 1].range.end
@@ -81,8 +91,12 @@ export default class Contract {
       r.by("months", m => {
         nMonths += 1;
       });
+
       nHoursMonth = Number(nHours / nMonths).toFixed(2);
     }
+    */
+    const r = moment.range(contractPeriod.start, contractPeriod.end);
+    r.by("months", m => { nMonths += 1 });
 
     monthlyAmount = rate * (nHours / nMonths);
     monthlyAmount = monthlyAmount.toFixed(2);
@@ -180,7 +194,7 @@ export default class Contract {
         columns: [
           { text: "Nb d'heures:", width: "20%" },
           {
-            text: `${nHours} pour ${nMonths} mois de présence, soit ${nHoursMonth} heures mensuelles en moyenne`,
+            text: `${nHours} pour ${nDays} jours de présence sur ${nMonths} mois`,
             width: "80%"
           }
         ]

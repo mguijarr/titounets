@@ -252,8 +252,8 @@ export default class Parametres extends React.Component {
     }
 
     const contractYear = moment(this.state.contractStart).year();
-    const openingHour = this.state.openingHours[0] * 3600;
-    const closingHour = this.state.openingHours[1] * 3600;
+    const openingHour = this.state.openingHours[0];
+    const closingHour = this.state.openingHours[1];
     const contractRange = moment.range([
       moment(this.state.contractStart),
       moment(this.state.contractEnd)
