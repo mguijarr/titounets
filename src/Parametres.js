@@ -490,7 +490,7 @@ export default class Parametres extends React.Component {
           >
             <NavItem eventKey={0}>Général</NavItem>
             <NavItem eventKey={1}>Contrats</NavItem>
-            <NavItem eventKey={2}>Jours fériés et de fermeture</NavItem>
+            <NavItem eventKey={2}>Jours de fermeture</NavItem>
           </Nav>
         </Row>
         <Row>

@@ -1,4 +1,4 @@
-import { formatClockTime } from "./utils";
+import { formatClockTime, isClosed } from "./utils";
 import moment from "moment";
 
 export default class Contract {
@@ -7,7 +7,7 @@ export default class Contract {
     this.today = moment().format("LL");
   }
 
-  getContents(name, address, contractPeriod, family, child, childPeriods) {
+  getContents(name, address, contractPeriod, closedPeriods, family, child, childPeriods) {
     const f = family;
     const cStart = contractPeriod.start.format("L");
     const cEnd = contractPeriod.end.format("L");
@@ -66,11 +66,12 @@ export default class Contract {
 
       const r = moment.range(p.range.start, p.range.end);
       r.by("days", d => {
-        // if d is not a bank holiday or a closed day !!!! TODO
-        const hour = p.timetable[d.weekday()+1];
-        if (hour) {
-          nHours += hour[1] - hour[0];
-          nDays += 1;
+        if (! isClosed(d, closedPeriods)) {
+          const hour = p.timetable[d.weekday()+1];
+          if (hour) {
+            nHours += hour[1] - hour[0];
+            nDays += 1;
+          }
         }
       });
 

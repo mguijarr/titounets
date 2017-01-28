@@ -23,7 +23,7 @@ import "./css/GestionContrat.css!";
 import "./css/calendar.css!";
 import auth from "./auth";
 import {
-  isWeekend,
+  isClosed,
   isHoliday,
   checkStatus,
   parseJSON,
@@ -138,6 +138,9 @@ export default class GestionContrat extends React.Component {
           contractRange: moment.range(contractStart, contractEnd),
           openingTime: res.opening,
           closingTime: res.closing,
+          closedPeriods: res.closedPeriods.map(p => {
+            return moment.range(p);
+          }),
           enabled: res.contractChangesAllowed === "1",
           address: res.address,
           name: res.name
@@ -293,7 +296,7 @@ export default class GestionContrat extends React.Component {
 
   checkChildForDay(day, childIndex) {
     if (Object.keys(this.state.childOrder2Name).length > childIndex) {
-      if (isWeekend(day)) {
+      if (isClosed(day, this.state.closedPeriods)) {
         return false;
       }
       const childName = this.state.childOrder2Name[childIndex];
@@ -328,6 +331,7 @@ export default class GestionContrat extends React.Component {
             this.state.name,
             this.state.address,
             this.state.contractRange,
+            this.state.closedPeriods,
             f,
             child,
             periods
@@ -381,9 +385,8 @@ export default class GestionContrat extends React.Component {
       holiday: day => {
         return isHoliday(day, this.state.holidays);
       },
-      weekend: isWeekend,
       unselectable: day => {
-        return !day.within(this.state.contractRange);
+        return isClosed(day, this.state.closedPeriods) || !day.within(this.state.contractRange);
       },
       today: day => {
         return moment().startOf("day").isSame(day, "d");

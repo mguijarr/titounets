@@ -296,3 +296,10 @@ export function isBankHoliday(day, alsace) {
     return d.isSame(day);
   });
 }
+
+export function isClosed(day, closedPeriods) {
+  return closedPeriods.some(p => {
+    return moment(day).within(p);
+  }) || isWeekend(day) || isBankHoliday(day);
+}
+ 
