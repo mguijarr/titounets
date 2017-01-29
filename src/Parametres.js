@@ -326,6 +326,7 @@ export default class Parametres extends React.Component {
                   <TimePicker
                     start="6"
                     end="21"
+                    step="15"
                     value={openingHour}
                     onChange={this.setOpeningHour}
                   />
@@ -335,6 +336,7 @@ export default class Parametres extends React.Component {
                   <TimePicker
                     start="6"
                     end="21"
+                    step="15"
                     value={closingHour}
                     onChange={this.setClosingHour}
                   />

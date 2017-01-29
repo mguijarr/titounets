@@ -61,6 +61,7 @@ class DayRow extends React.Component {
           <TimePicker
             start={this.props.openingTime}
             end={this.props.closingTime}
+            step={15}
             value={this.state.currentStartTime}
             onChange={this.handleStartTimeChange}
           />
@@ -69,6 +70,7 @@ class DayRow extends React.Component {
           <TimePicker
             start={this.props.openingTime}
             end={this.props.closingTime}
+            step={15}
             value={this.state.currentEndTime}
             onChange={this.handleEndTimeChange}
           />

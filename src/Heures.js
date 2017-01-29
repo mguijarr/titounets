@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import DatePicker from "react-bootstrap-date-picker";
-import ReactBootstrapSlider from "react-bootstrap-slider";
+import { ReactBootstrapSlider } from "react-bootstrap-slider";
 import "bootstrap-slider/dist/css/bootstrap-slider.min.css!";
 import "./css/Heures.css!";
 import {
@@ -32,13 +32,16 @@ export default class Heures extends React.Component {
     this.state = {
       busy: false,
       children: [],
-      opening_hours: [ 8, 19 ],
-      date: new Date().toISOString()
+      openingHours: [ 8, 19 ],
+      date: new Date().toISOString(),
+      currentRange: []
     };
 
     this.formatHour = this.formatHour.bind(this);
     this.dateChanged = this.dateChanged.bind(this);
     this.getChildrenList = this.getChildrenList.bind(this);
+    this.setHours = this.setHours.bind(this);
+    this.hoursChanged = this.hoursChanged.bind(this);
   }
 
   getChildrenList(date) {
@@ -61,7 +64,7 @@ export default class Heures extends React.Component {
 
     this.setState({ busy: true });
     // get opening hours
-    fetch("/opening_hours", {
+    fetch("/parameters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -69,7 +72,7 @@ export default class Heures extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        this.setState({ opening_hours: res, busy: false });
+        this.setState({ openingHours: [res.opening, res.closing], busy: false });
       });
   }
 
@@ -85,13 +88,23 @@ export default class Heures extends React.Component {
   }
 
   dateChanged(isodate) {
-    this.setState({ date: isodate });
+    this.setState({ date: isodate, busy: true });
     this.getChildrenList(isodate);
   }
 
+  setHours(childIndex) {
+    //
+  }
+
+  hoursChanged(childIndex, range) {
+    const children = this.state.children;
+    const c = children[childIndex];
+    c.hours[this.state.date] = [range[0]/60, range[1]/60];
+  }
+
   render() {
-    const opening_hour = this.state.opening_hours[0] * 60;
-    const closing_hour = this.state.opening_hours[1] * 60;
+    const openingHour = this.state.openingHours[0] * 60;
+    const closingHour = this.state.openingHours[1] * 60;
 
     if (this.state.busy) {
       return <img className="centered" src="spinner.gif" />;
@@ -129,6 +142,11 @@ export default class Heures extends React.Component {
         <Row>
           <Col lg={12}>
             {this.state.children.map((c, i) => {
+                const cHours = c.hours[this.state.date];
+                const hoursRange = cHours === undefined ? [this.state.openingHour, this.state.openingHour] : cHours;
+                hoursRange[0] = hoursRange[0] * 60;
+                hoursRange[1] = hoursRange[1] * 60;
+               
                 return (
                   <Row>
                     <Col lg={5}>
@@ -137,17 +155,18 @@ export default class Heures extends React.Component {
                     <Col lg={5}>
                       <div style={{ marginTop: "20px" }}>
                         <ReactBootstrapSlider
-                          value={[ opening_hour, opening_hour ]}
-                          min={opening_hour}
-                          max={closing_hour}
+                          value={hoursRange}
+                          min={openingHour}
+                          max={closingHour}
                           formatter={this.formatHour}
+                          slideStop={(event)=>{ return this.hoursChanged(i, event.target.value)}}
                           rangeHighlights={
                             [
                               {
-                                start: opening_hour,
+                                start: openingHour,
                                 end: c.contractStart * 60
                               },
-                              { start: c.contractEnd * 60, end: closing_hour }
+                              { start: c.contractEnd * 60, end: closingHour }
                             ]
                           }
                         />
@@ -155,14 +174,11 @@ export default class Heures extends React.Component {
                     </Col>
                     <Col lg={2}>
                       <div style={{ marginTop: "10px" }}>
-                        <Button bsStyle="success">
+                        <Button bsStyle="success" onClick={()=>{ this.setHours(i) }}>
                           <Glyphicon glyph="ok" />
                         </Button>
-                        <Button bsStyle="danger">
+                        <Button bsStyle="danger" onClick={()=>{this.enableChange(i)}}>
                           <Glyphicon glyph="remove" />
-                        </Button>
-                        <Button bsStyle="primary">
-                          <Glyphicon glyph="repeat" />
                         </Button>
                       </div>
                     </Col>

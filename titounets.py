@@ -27,7 +27,6 @@ def index():
 
 @app.route('/holidays')
 def holidays():
-    print get_holidays()
     return jsonify(get_holidays())
 
 @app.route("/login", methods=["POST"])
@@ -90,32 +89,40 @@ def get_children(date):
     if not session['admin']:
       return make_response("", 401)   
     
-    period_keys = db.keys("*:children:*:periods")
+    child_periods_keys = db.keys("*:children:*:periods")
     result = list()
     day = dateutil.parser.parse(date).date()
     local_tz = pytz.timezone("Europe/Paris")
 
-    for p in period_keys:
-      json_date_ranges = map(json.loads, db.lrange(p, 0, -1))
-      date_ranges = [(dateutil.parser.parse(r["start"]), dateutil.parser.parse(r["end"])) for r in json_date_ranges] 
+    for k in child_periods_keys:
+      username,_,child_index,_ = k.split(":")
+      family_data = extract_family_data(username)
+      child = family_data["children"][int(child_index)]
+
+      periods = map(json.loads, db.lrange(k, 0, -1))
+      date_ranges = list()
+      for i, p in enumerate(periods):
+        date_ranges.append((i, dateutil.parser.parse(p["range"]["start"]), dateutil.parser.parse(p["range"]["end"]))) 
   
-      for start, end in date_ranges:
+      for period_index, start, end in date_ranges:
         start = start.replace(tzinfo=pytz.utc).astimezone(local_tz).replace(tzinfo=None)
         end = end.replace(tzinfo=pytz.utc).astimezone(local_tz).replace(tzinfo=None)
-        print start.time(), end.time()
         if start.date() <= day <= end.date():
-          username,_,child_index,_ = p.split(":")
-          family_data = extract_family_data(username)
-          child = family_data["children"][int(child_index)]
-          start_time = start.time().hour+start.time().minute/60.
-          end_time = end.time().hour+end.time().minute/60.
-          result.append((child['surname'], child['name'], username, start_time, end_time))
+          timetable = periods[period_index]["timetable"]
+          hours = timetable[str(day.weekday()+1)]
+          print hours
+          if hours:
+            contract_start_time = hours[0]
+            contract_end_time = hours[1]
+          result.append((child['surname'], child['name'], username, contract_start_time, contract_end_time))
 
     result.sort()
 
+    print result
+
     children = []
     for child in result:
-      children.append({ "surname": child[0], "name": child[1], "id": child[2], "contractStart":child[3], "contractEnd": child[4] })
+      children.append({ "surname": child[0], "name": child[1], "id": child[2], "contractStart":child[3], "contractEnd": child[4], "hours":{} })
     
     return jsonify(children)   
 
@@ -267,10 +274,6 @@ def allow_contract_changes():
     db.hset("parameters", "contractChangesAllowed", "1" if content["allowChanges"] else "0")
 
     return make_response("", 200)
-
-@app.route("/opening_hours", methods=["GET"])
-def opening_hours():
-  return jsonify([db.hget("parameters", "opening"), db.hget("parameters", "closing")])
 
 @app.route("/calendar", methods=["GET"])
 def get_calendar():

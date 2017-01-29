@@ -72,10 +72,11 @@ export function getFamilyName(familyData) {
 
 export function formatClockTime(s) {
   // return 'hh:mm' string from s seconds
-  const hh = Math.floor(s / 3600);
-  const mm = Math.floor((s - hh*3600) / 60);
-
-  return ("0" + hh).slice(-2)+":"+("0" + mm).slice(-2); 
+  const h = Math.floor(s / 3600);
+  const m = (s % 3600) / 60;
+  const hh = ("0" + h).slice(-2);
+  const mm = ("0" + m).slice(-2);
+  return `${hh}:${mm}`;
 }
 
 export class TimePicker extends React.Component {
