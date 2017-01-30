@@ -93,7 +93,7 @@ export default class GestionContrat extends React.Component {
 
   getPeriods(familyId) {
     this.setState({ busy: true });
-    fetch("/periods/" + familyId, {
+    fetch("/api/periods/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -120,7 +120,7 @@ export default class GestionContrat extends React.Component {
 
     this.setState({ busy: true });
 
-    fetch("/parameters", {
+    fetch("/api/parameters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -147,7 +147,7 @@ export default class GestionContrat extends React.Component {
         });
       });
 
-    fetch("/holidays", {
+    fetch("/api/holidays", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -160,7 +160,7 @@ export default class GestionContrat extends React.Component {
 
     if (auth.admin()) {
       // get all families
-      fetch("/families", {
+      fetch("/api/families", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include"
@@ -240,7 +240,7 @@ export default class GestionContrat extends React.Component {
   }
 
   savePeriods(familyId) {
-    fetch("/periods/" + familyId, {
+    fetch("/api/periods/" + familyId, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

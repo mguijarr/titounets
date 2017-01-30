@@ -9,7 +9,6 @@ import {
 } from "react-bootstrap";
 import { LinkContainer } from "react-router-bootstrap";
 import LoginForm from "./login";
-//import 'bootstrap/dist/css/bootstrap.min.css!';
 import auth from "./auth";
 
 export default class App extends React.Component {

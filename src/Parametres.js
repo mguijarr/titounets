@@ -77,7 +77,7 @@ export default class Parametres extends React.Component {
   }
 
   componentDidMount() {
-    fetch("/holidays", {
+    fetch("/api/holidays", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -88,7 +88,7 @@ export default class Parametres extends React.Component {
         this.setState({ holidays: res });
       });
 
-    fetch("/parameters", {
+    fetch("/api/parameters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -124,7 +124,7 @@ export default class Parametres extends React.Component {
   }
 
   allowChanges() {
-    fetch("/allowContractChanges", {
+    fetch("/api/allowContractChanges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -156,7 +156,7 @@ export default class Parametres extends React.Component {
   }
 
   save() {
-    fetch("/saveParameters", {
+    fetch("/api/saveParameters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

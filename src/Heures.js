@@ -47,7 +47,7 @@ export default class Heures extends React.Component {
   getChildrenList(date) {
     this.setState({ busy: true });
     // get children list
-    fetch("/children/" + date, {
+    fetch("/api/children/" + date, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -64,7 +64,7 @@ export default class Heures extends React.Component {
 
     this.setState({ busy: true });
     // get opening hours
-    fetch("/parameters", {
+    fetch("/api/parameters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"

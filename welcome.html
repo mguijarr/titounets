@@ -1,0 +1,23 @@
+<!doctype html>
+<head>
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react-dom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.7/react-bootstrap.min.js"></script>
+</head>
+<body>
+<div id="welcome"/>
+<script>
+var Jumbotron = ReactBootstrap.Jumbotron,
+    Button  = ReactBootstrap.Button;
+
+var jumbotronInstance = React.createElement(Jumbotron, null,
+    React.createElement("h1", null, "Hello, world!"),
+    React.createElement("p", null, "This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information."),
+    React.createElement("p", null, React.createElement(Button, {bsStyle: "primary"}, "Learn more"))
+);
+
+ReactDOM.render(jumbotronInstance, document.getElementById("welcome"));
+</script>
+
+</body>

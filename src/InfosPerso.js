@@ -67,7 +67,7 @@ export default class InfosPerso extends React.Component {
 
     if (adminView) {
       // get all families
-      fetch("/families", {
+      fetch("/api/families", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include"
@@ -124,7 +124,7 @@ export default class InfosPerso extends React.Component {
       });
     } else {
       this.setState({ busy: true });
-      fetch("/family/" + selectedFamily, {
+      fetch("/api/family/" + selectedFamily, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include"
@@ -184,7 +184,7 @@ export default class InfosPerso extends React.Component {
   }
 
   getCAFData(id, cb) {
-    fetch("/caf", {
+    fetch("/api/caf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -243,7 +243,7 @@ export default class InfosPerso extends React.Component {
   delFamily() {
     const id = this.state.family.id;
 
-    fetch("/delfamily", {
+    fetch("/api/delfamily", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -270,7 +270,7 @@ export default class InfosPerso extends React.Component {
       const qf = this.state.formValues.qf;
       const children = this.state.family.children;
 
-      fetch("/save", {
+      fetch("/api/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
