@@ -10,7 +10,7 @@ export default {
       return;
     }
 
-    fetch("/login", {
+    fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -45,7 +45,7 @@ export default {
   },
   logout(cb) {
     localStorage.clear();
-    fetch("/logout", {
+    fetch("/api/logout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include"

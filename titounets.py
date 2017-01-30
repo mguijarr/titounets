@@ -23,13 +23,34 @@ Session(app)
 
 @app.route("/")
 def index():
+    session.clear()
+    return app.send_static_file("welcome.html")
+
+@app.route("/<etablissement>")
+def show_login(etablissement):
+    if session.get("etablissement", etablissement) != etablissement:
+      return make_response("", 401)
+
+    ets = file(os.path.join(os.path.dirname(__file__), "etablissements.cfg"), "r").read()
+    ets_dict = ast.literal_eval(ets)
+    et = ets_dict.get(etablissement)
+    db_id = et.get("id")
+    if db_id is None:
+      return make_response("", 404)
+    caf_username, caf_passwd = et["caf"]
+    caf.USERNAME = caf_username; caf.PASSWORD = caf_passwd 
+      
+    session["etablissement"] = etablissement
+    global db
+    db = redis.Redis(host='localhost', port=6379, db=db_id, password=password.strip())
+
     return app.send_static_file('index.html')
 
-@app.route('/holidays')
+@app.route("/api/holidays")
 def holidays():
     return jsonify(get_holidays())
 
-@app.route("/login", methods=["POST"])
+@app.route("/api/login", methods=["POST"])
 def login():
     content = request.get_json()
     username = str(content['username'])
@@ -44,7 +65,7 @@ def login():
 
     return jsonify({ 'success': logged_in, "admin": admin })
 
-@app.route("/logout", methods=["POST"])
+@app.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
     return make_response("", 200)
@@ -77,14 +98,14 @@ def extract_families():
     
     return families
 
-@app.route('/families', methods=["GET"])
+@app.route("/api/families", methods=["GET"])
 def get_families():
     if not session['admin']:
       return make_response("", 401)   
     
     return jsonify(extract_families())
 
-@app.route('/children/<date>', methods=["GET"])
+@app.route("/api/children/<date>", methods=["GET"])
 def get_children(date):
     if not session['admin']:
       return make_response("", 401)   
@@ -126,7 +147,7 @@ def get_children(date):
     
     return jsonify(children)   
 
-@app.route("/periods/<int:username>", methods=["GET"])
+@app.route("/api/periods/<int:username>", methods=["GET"])
 def get_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         family = extract_family_data(username)
@@ -139,7 +160,7 @@ def get_children_periods(username):
     else:
         return make_response("", 401)
 
-@app.route("/periods/<int:username>", methods=["POST"])
+@app.route("/api/periods/<int:username>", methods=["POST"])
 def set_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         periods = request.get_json()
@@ -158,7 +179,7 @@ def set_children_periods(username):
     else:
         return make_response("", 401)
    
-@app.route('/delfamily', methods=["POST"])
+@app.route("/api/delfamily", methods=["POST"])
 def del_family():
     if not session['admin']:
       return make_response("", 401)   
@@ -176,14 +197,14 @@ def del_family():
 
     return jsonify(extract_families())
 
-@app.route('/family/<int:username>', methods=["GET"])
+@app.route("/api/family/<int:username>", methods=["GET"])
 def get_family(username):
     if session['admin'] or int(session["username"]) == username:
         return jsonify(extract_family_data(username))
     else:
         return make_response("", 401)
 
-@app.route("/save", methods=["POST"])
+@app.route("/api/save", methods=["POST"])
 def save():
     if not session['admin']:
       return make_response("", 401)
@@ -231,7 +252,7 @@ def save():
 
     return make_response("", 200)
 
-@app.route("/caf", methods=["POST"])
+@app.route("/api/caf", methods=["POST"])
 def retrieve_caf_data():
   """{'address': {'city': u'ST LAURENT DU PONT', 'street': [u'1579 CHEMIN DES COTES DE VILLETTE', u''], 'zip': u'38380'}, 'parents': [u'SAMIRA ACAJJAOUI', u'MATHIAS GUIJARRO'], 'children': [{'surname': u'GUIJARRO', 'name': u'ELIAS', 'birthdate': '2013-06-15T00:00:00'}, {'surname': u'GUIJARRO', 'name': u'SARA', 'birthdate': '2011-09-06T00:00:00'}], 'qf': 77785.0}
   """
@@ -245,14 +266,14 @@ def retrieve_caf_data():
 
   return jsonify(result)
 
-@app.route("/parameters", methods=["GET"])
+@app.route("/api/parameters", methods=["GET"])
 def get_parameters():
   params = db.hgetall("parameters")
   params['address'] = ast.literal_eval(params.pop("address", '{}'))
   params['closedPeriods'] = ast.literal_eval(params.pop("closedPeriods", '[]'))
   return jsonify(params)
 
-@app.route("/saveParameters", methods=["POST"])
+@app.route("/api/saveParameters", methods=["POST"])
 def save_parameters():
   if not session["admin"]:
     return make_response("", 401)
@@ -264,7 +285,7 @@ def save_parameters():
 
   return make_response("", 200)
 
-@app.route("/allowContractChanges", methods=["POST"])
+@app.route("/api/allowContractChanges", methods=["POST"])
 def allow_contract_changes():
     if not session["admin"]:
         return make_response("", 401)
@@ -275,7 +296,7 @@ def allow_contract_changes():
 
     return make_response("", 200)
 
-@app.route("/calendar", methods=["GET"])
+@app.route("/api/calendar", methods=["GET"])
 def get_calendar():
   pass
 
