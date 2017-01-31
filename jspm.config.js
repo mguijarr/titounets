@@ -5,7 +5,7 @@ SystemJS.config({
     "titounets/": "src/"
   },
   browserConfig: {
-    "baseURL": "/",
+    "baseURL": "static",
     "production": true,
     "paths": {
       "react-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react/15.4.1/react.min.js",
@@ -15,8 +15,6 @@ SystemJS.config({
       "react-router-bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/react-router-bootstrap/0.23.1/ReactRouterBootstrap.min.js",
       "bootstrap-cdn": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js",
       "bootstrap-css-cdn": "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/",
-      /*"moment-cdn": "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.17.1/moment.min.js",
-      "moment-range-cdn": "https://cdnjs.cloudflare.com/ajax/libs/moment-range/2.2.0/moment-range.min.js",*/
       "pdfmake-cdn": "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.20/pdfmake.min.js",
       "pdfmake-fonts-cdn": "https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.20/vfs_fonts.js"
     }
@@ -49,6 +47,12 @@ SystemJS.config({
           "esutils": "npm:esutils@2.0.2",
           "lodash": "npm:lodash@4.17.2",
           "to-fast-properties": "npm:to-fast-properties@1.0.2"
+        }
+      },
+      "npm:babel-runtime@6.18.0": {
+        "map": {
+          "core-js": "npm:core-js@2.4.1",
+          "regenerator-runtime": "npm:regenerator-runtime@0.9.6"
         }
       }
     }
@@ -110,6 +114,7 @@ SystemJS.config({
     "react-yearly-calendar": "npm:react-yearly-calendar@1.1.5",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",
     "string_decoder": "npm:jspm-nodelibs-string_decoder@0.2.0",
+    "svg": "github:npbenjohnson/plugin-svg@0.1.0",
     "systemjs/plugin-css": "github:systemjs/plugin-css@0.1.32",
     "twbs/bootstrap": "bootstrap-cdn",
     "url": "npm:jspm-nodelibs-url@0.2.0",
@@ -118,19 +123,6 @@ SystemJS.config({
     "zlib": "npm:jspm-nodelibs-zlib@0.2.2"
   },
   packages: {
-    "npm:react-bootstrap@0.30.7": {
-      "map": {
-        "classnames": "npm:classnames@2.2.5",
-        "dom-helpers": "npm:dom-helpers@2.4.0",
-        "invariant": "npm:invariant@2.2.2",
-        "react-overlays": "npm:react-overlays@0.6.10",
-        "warning": "npm:warning@3.0.0",
-        "keycode": "npm:keycode@2.1.7",
-        "uncontrollable": "npm:uncontrollable@4.0.3",
-        "babel-runtime": "npm:babel-runtime@6.18.0",
-        "react-prop-types": "npm:react-prop-types@0.4.0"
-      }
-    },
     "npm:react@15.4.1": {
       "map": {
         "object-assign": "npm:object-assign@4.1.0",
@@ -153,40 +145,6 @@ SystemJS.config({
         "isomorphic-fetch": "npm:isomorphic-fetch@2.2.1",
         "promise": "npm:promise@7.1.1",
         "ua-parser-js": "npm:ua-parser-js@0.7.12"
-      }
-    },
-    "npm:invariant@2.2.2": {
-      "map": {
-        "loose-envify": "npm:loose-envify@1.3.0"
-      }
-    },
-    "npm:warning@3.0.0": {
-      "map": {
-        "loose-envify": "npm:loose-envify@1.3.0"
-      }
-    },
-    "npm:react-overlays@0.6.10": {
-      "map": {
-        "classnames": "npm:classnames@2.2.5",
-        "dom-helpers": "npm:dom-helpers@2.4.0",
-        "react-prop-types": "npm:react-prop-types@0.4.0",
-        "warning": "npm:warning@3.0.0"
-      }
-    },
-    "npm:uncontrollable@4.0.3": {
-      "map": {
-        "invariant": "npm:invariant@2.2.2"
-      }
-    },
-    "npm:react-prop-types@0.4.0": {
-      "map": {
-        "warning": "npm:warning@3.0.0"
-      }
-    },
-    "npm:babel-runtime@6.18.0": {
-      "map": {
-        "core-js": "npm:core-js@2.4.1",
-        "regenerator-runtime": "npm:regenerator-runtime@0.9.6"
       }
     },
     "npm:loose-envify@1.3.0": {
@@ -472,6 +430,6 @@ SystemJS.config({
         "bootstrap-slider": "npm:bootstrap-slider@9.5.3",
         "es6bindall": "npm:es6bindall@0.0.9"
       }
-    },
+    }
   }
 });

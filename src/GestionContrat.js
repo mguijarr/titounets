@@ -372,7 +372,7 @@ export default class GestionContrat extends React.Component {
     this.childCheckbox = {};
 
     if (this.state.busy) {
-      return <img className="centered" src="spinner.gif" />;
+      return <img className="centered" src="img/spinner.gif" />;
     }
 
     if (!auth.admin() && !this.state.enabled) {

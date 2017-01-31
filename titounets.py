@@ -1,4 +1,4 @@
-from flask import Flask, session, request, jsonify, make_response
+from flask import Flask, session, request, jsonify, make_response, redirect
 from flask_compress import Compress
 from flask_session import Session
 import redis
@@ -11,41 +11,29 @@ import dateutil.parser
 import pytz
 import ast
 
-password = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
-db = redis.Redis(host='localhost', port=6379, db=0, password=password.strip())
+REDIS_PASSWORD = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
+REDIS_PASSWORD = REDIS_PASSWORD.strip()
 
 app = Flask("titounets", static_url_path='', static_folder='')
 Compress(app)
 SESSION_TYPE = 'redis'
-SESSION_REDIS = db
+SESSION_REDIS = redis.Redis(host='localhost', port=6379, db=0, password=REDIS_PASSWORD)
 app.config.from_object(__name__)
 Session(app)
 
+DBS = dict()
+
 @app.route("/")
 def index():
-    session.clear()
-    return app.send_static_file("welcome.html")
+    return redirect("index.html")
 
-@app.route("/<etablissement>")
-def show_login(etablissement):
-    if session.get("etablissement", etablissement) != etablissement:
-      return make_response("", 401)
-
+@app.route("/api/etablissements")
+def get_establishment_list():
     ets = file(os.path.join(os.path.dirname(__file__), "etablissements.cfg"), "r").read()
     ets_dict = ast.literal_eval(ets)
-    et = ets_dict.get(etablissement)
-    db_id = et.get("id")
-    if db_id is None:
-      return make_response("", 404)
-    caf_username, caf_passwd = et["caf"]
-    caf.USERNAME = caf_username; caf.PASSWORD = caf_passwd 
-      
-    session["etablissement"] = etablissement
-    global db
-    db = redis.Redis(host='localhost', port=6379, db=db_id, password=password.strip())
 
-    return app.send_static_file('index.html')
-
+    return jsonify(sorted([[k, v["name"]] for k, v in ets_dict.iteritems()], key=lambda x: x[1]))
+    
 @app.route("/api/holidays")
 def holidays():
     return jsonify(get_holidays())
@@ -53,8 +41,20 @@ def holidays():
 @app.route("/api/login", methods=["POST"])
 def login():
     content = request.get_json()
+    et = str(content["et"])
     username = str(content['username'])
     password = str(content['password'])
+    
+    ets = file(os.path.join(os.path.dirname(__file__), "etablissements.cfg"), "r").read()
+    ets_dict = ast.literal_eval(ets)
+    etablissement = ets_dict[et]
+    caf_username, caf_passwd = etablissement["caf"]
+    session["caf_username"] = caf_username
+    session["caf_passwd"] = caf_passwd
+    db_id = etablissement["id"]
+    session["etablissement"] = et
+    db = redis.Redis(host='localhost', port=6379, db=db_id, password=REDIS_PASSWORD)
+    DBS[et] = db
 
     passwd_hash = db.hget(username, "password")
     logged_in = passwd_hash == bcrypt.hashpw(password, passwd_hash)
@@ -70,7 +70,8 @@ def logout():
     session.clear()
     return make_response("", 200)
 
-def extract_family_data(username):
+def extract_family_data(db, username):
+    db = DBS[session["etablissement"]]
     family = db.hgetall(username)
 
     family["children"] = []
@@ -87,29 +88,32 @@ def extract_family_data(username):
 
     return family
 
-def extract_families():
+def extract_families(db):
     families = []
 
     for k in db.keys('*'):
       if k == 'admin' or k.startswith('session:') or k.startswith("parameters"):
         continue
       if not ':children:' in k:
-        families.append(extract_family_data(k))
+        families.append(extract_family_data(db, k))
     
     return families
 
 @app.route("/api/families", methods=["GET"])
 def get_families():
     if not session['admin']:
-      return make_response("", 401)   
+      return make_response("", 401)
+
+    db = DBS[session["etablissement"]]
     
-    return jsonify(extract_families())
+    return jsonify(extract_families(db))
 
 @app.route("/api/children/<date>", methods=["GET"])
 def get_children(date):
     if not session['admin']:
       return make_response("", 401)   
     
+    db = DBS[session["etablissement"]]
     child_periods_keys = db.keys("*:children:*:periods")
     result = list()
     day = dateutil.parser.parse(date).date()
@@ -117,7 +121,7 @@ def get_children(date):
 
     for k in child_periods_keys:
       username,_,child_index,_ = k.split(":")
-      family_data = extract_family_data(username)
+      family_data = extract_family_data(db, username)
       child = family_data["children"][int(child_index)]
 
       periods = map(json.loads, db.lrange(k, 0, -1))
@@ -139,8 +143,6 @@ def get_children(date):
 
     result.sort()
 
-    print result
-
     children = []
     for child in result:
       children.append({ "surname": child[0], "name": child[1], "id": child[2], "contractStart":child[3], "contractEnd": child[4], "hours":{} })
@@ -149,8 +151,9 @@ def get_children(date):
 
 @app.route("/api/periods/<int:username>", methods=["GET"])
 def get_children_periods(username):
+    db = DBS[session["etablissement"]]
     if session['admin'] or int(session["username"]) == username:
-        family = extract_family_data(username)
+        family = extract_family_data(db, username)
         res = dict()
         for i, c in enumerate(family['children']):
            key = "%d:children:%s:periods" % (username, i) 
@@ -162,9 +165,10 @@ def get_children_periods(username):
 
 @app.route("/api/periods/<int:username>", methods=["POST"])
 def set_children_periods(username):
+    db = DBS[session["etablissement"]]
     if session['admin'] or int(session["username"]) == username:
         periods = request.get_json()
-        family_data = extract_family_data(username)
+        family_data = extract_family_data(db, username)
         for child_name in periods:
            i = [child_name==c["name"] for c in family_data["children"]].index(True)
            key = "%d:children:%s:periods" % (username, i)
@@ -183,6 +187,7 @@ def set_children_periods(username):
 def del_family():
     if not session['admin']:
       return make_response("", 401)   
+    db = DBS[session["etablissement"]]
     
     content = request.get_json()
     username = content["username"]
@@ -195,12 +200,13 @@ def del_family():
         p.delete(c)
       p.execute()
 
-    return jsonify(extract_families())
+    return jsonify(extract_families(db))
 
 @app.route("/api/family/<int:username>", methods=["GET"])
 def get_family(username):
+    db = DBS[session["etablissement"]]
     if session['admin'] or int(session["username"]) == username:
-        return jsonify(extract_family_data(username))
+        return jsonify(extract_family_data(db, username))
     else:
         return make_response("", 401)
 
@@ -208,6 +214,7 @@ def get_family(username):
 def save():
     if not session['admin']:
       return make_response("", 401)
+    db = DBS[session["etablissement"]]
 
     content = request.get_json()
     username = content["username"]
@@ -262,12 +269,13 @@ def retrieve_caf_data():
   content = request.get_json()
   caf_id = content['id']
 
-  result = caf.get_data(caf_id)
+  result = caf.get_data(caf_id, session["caf_username"], session["caf_passwd"])
 
   return jsonify(result)
 
 @app.route("/api/parameters", methods=["GET"])
 def get_parameters():
+  db = DBS[session["etablissement"]]
   params = db.hgetall("parameters")
   params['address'] = ast.literal_eval(params.pop("address", '{}'))
   params['closedPeriods'] = ast.literal_eval(params.pop("closedPeriods", '[]'))
@@ -278,6 +286,7 @@ def save_parameters():
   if not session["admin"]:
     return make_response("", 401)
 
+  db = DBS[session["etablissement"]]
   content = request.get_json()
 
   for key, val in content.iteritems():
@@ -292,13 +301,14 @@ def allow_contract_changes():
 
     content = request.get_json()
 
+    db = DBS[session["etablissement"]]
     db.hset("parameters", "contractChangesAllowed", "1" if content["allowChanges"] else "0")
 
     return make_response("", 200)
 
 @app.route("/api/calendar", methods=["GET"])
 def get_calendar():
-  pass
+  db = DBS[session["etablissement"]]
 
 
 if __name__ == '__main__':

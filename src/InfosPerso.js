@@ -308,7 +308,7 @@ export default class InfosPerso extends React.Component {
 
   render() {
     if (this.state.busy) {
-      return <img className="centered" src="spinner.gif" />;
+      return <img className="centered" src="img/spinner.gif" />;
     }
 
     const family = Object.assign({ id: null, children: [] }, this.state.family);

@@ -1,7 +1,7 @@
 import { checkStatus, parseJSON } from "./utils";
 
 export default {
-  login(user, pass, cb) {
+  login(et, user, pass, cb) {
     if (localStorage.loggedIn) {
       if (cb) {
         cb(true);
@@ -14,7 +14,7 @@ export default {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ username: user, password: pass })
+      body: JSON.stringify({ et, username: user, password: pass })
     })
       .then(checkStatus)
       .then(parseJSON)
@@ -22,6 +22,7 @@ export default {
         if (res.success) {
           localStorage.loggedIn = true;
           localStorage.admin = res.admin;
+          localStorage.et = et;
           if (res.admin) {
             localStorage.familyId = null;
           } else {
@@ -40,7 +41,8 @@ export default {
         }
       })
       .catch(error => {
-        console.log("request failed", error);
+        console.log("request failed");
+        this.onChange(false);
       });
   },
   logout(cb) {

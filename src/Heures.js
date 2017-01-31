@@ -107,7 +107,7 @@ export default class Heures extends React.Component {
     const closingHour = this.state.openingHours[1] * 60;
 
     if (this.state.busy) {
-      return <img className="centered" src="spinner.gif" />;
+      return <img className="centered" src="img/spinner.gif" />;
     }
 
     return (
