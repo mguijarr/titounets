@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { Router, hashHistory, IndexRoute, Route } from "react-router";
 
 import auth from "./auth";
+import LoginScreen from "./LoginScreen";
 import App from "./App";
 import Home from "./Home";
 import Parametres from "./Parametres";
@@ -13,7 +14,7 @@ import Heures from "./Heures";
 function requireAuth(nextState, replace) {
   if (!auth.loggedIn()) {
     replace({
-      pathname: "/",
+      pathname: "/login",
       state: { nextPathname: nextState.location.pathname }
     });
   }
@@ -22,16 +23,16 @@ function requireAuth(nextState, replace) {
 const render = () => {
   ReactDOM.render(
     <Router history={hashHistory}>
-      <Route path="/" component={App}>
+      <Route path="/" component={LoginScreen}/>
+      <Route path="/application" component={App} onEnter={requireAuth}>
         <IndexRoute component={Home} />
-        <Route path="parametres" component={Parametres} onEnter={requireAuth} />
-        <Route path="infosperso" component={InfosPerso} onEnter={requireAuth} />
+        <Route path="parametres" component={Parametres} />
+        <Route path="infosperso" component={InfosPerso} />
         <Route
           path="gestioncontrat"
           component={GestionContrat}
-          onEnter={requireAuth}
         />
-        <Route path="heures" component={Heures} onEnter={requireAuth} />
+        <Route path="heures" component={Heures} />
       </Route>
     </Router>,
     document.getElementById("app")

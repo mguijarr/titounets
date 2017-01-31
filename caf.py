@@ -27,7 +27,6 @@ CAF_QF = (1, "/QFCNAFType1.jsp")
 CAF_CHILDREN = (2, "/EnfantAutPersType1.jsp")
 CAF_ADDRESS = (3, "/AdresseType1.jsp")
 
-#USERNAME, PASSWORD = eval(file(os.path.join(os.path.dirname(__file__), "caf.passwd")).read())
 REFERER = "https://wwwd.caf.fr/wpr-cafpro-web/Ident.jsp"
 try:
   MATRICULE = sys.argv[1]
@@ -36,7 +35,7 @@ except:
 
 locale.setlocale(locale.LC_NUMERIC, 'fr_FR.UTF-8')
 
-def get_data(matricule):
+def get_data(matricule, USERNAME, PASSWORD):
   result = dict()
 
   with requests.Session() as s:

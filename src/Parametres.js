@@ -248,7 +248,7 @@ export default class Parametres extends React.Component {
 
   render() {
     if (this.state.busy) {
-      return <img className="centered" src="spinner.gif" />;
+      return <img className="centered" src="img/spinner.gif" />;
     }
 
     const contractYear = moment(this.state.contractStart).year();
