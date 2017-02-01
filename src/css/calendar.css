@@ -75,7 +75,7 @@ table.calendar td.week-separator {
 }
 
 .holiday {
-  background-color: rgba(255,249,226,50);
+  background-color: #ffff99;
 }
 
 table.calendar td.holidays {

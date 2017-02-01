@@ -19,22 +19,22 @@ class DayRow extends React.Component {
     this.checkbox = null;
   }
 
-  componentWillReceiveProps(nextProps) {
-    this.setState({ currentStartTime: nextProps.startTime, currentEndTime: nextProps.endTime });
-  }
-  
   handleStartTimeChange(time) {
-    this.setState({ currentStartTime: time });
-    this.props.onChange(this.checkbox.checked, time, this.state.currentEndTime);
+    this.setState((prevState, props) => {
+      this.props.onChange(this.checkbox.checked, time, this.state.currentEndTime);
+      return { currentStartTime: time };
+    });
   }
 
   handleEndTimeChange(time) {
-    this.setState({ currentEndTime: time });
-    this.props.onChange(
-      this.checkbox.checked,
-      this.state.currentStartTime,
-      time
-    );
+    this.setState((prevState, props) => {
+      this.props.onChange(
+        this.checkbox.checked,
+        this.state.currentStartTime,
+        time
+      );
+      return { currentEndTime: time };
+    });
   }
 
   daySelectionChanged() {
@@ -123,7 +123,6 @@ export default class TimeTable extends React.Component {
         </thead>
         <tbody>
           {this.props.days.map((d,i) => {
-              console.log(d);
               // d is undefined means 'no day within range',
               // d is null means 'not selected',
               // otherwise d contains start,end
