@@ -103,7 +103,8 @@ export default class InfosPerso extends React.Component {
     const formValues = {
       parent1: data.parents[0],
       parent2: data.parents[1],
-      qf: data.qf
+      qf: data.qf,
+      id: data.id
     };
     return { addressFields, formValues };
   }

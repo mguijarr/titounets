@@ -22,7 +22,7 @@ export default {
         if (res.success) {
           localStorage.loggedIn = true;
           localStorage.admin = res.admin;
-          localStorage.et = et;
+          localStorage.et = res.etName;
           if (res.admin) {
             localStorage.familyId = null;
           } else {
@@ -66,6 +66,9 @@ export default {
   },
   familyId() {
     return localStorage.familyId;
+  },
+  etablissement() {
+    return localStorage.et;
   },
   onChange() {
   }

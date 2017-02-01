@@ -61,7 +61,8 @@ export default class GestionContrat extends React.Component {
       address: {},
       familyId: -1,
       family: {},
-      families: []
+      families: [],
+      saveEnabled: false
     };
 
     this.onPickRange = this.onPickRange.bind(this);
@@ -198,27 +199,54 @@ export default class GestionContrat extends React.Component {
 
   addPeriod() {
     const periods = this.state.periods;
-    const newRange = moment.range(...this.state.currentRange);
+    const ranges = [];
+    if (this.holidaysCheckbox.checked) {
+        const r = moment.range(...this.state.currentRange);
+        let start = moment(r.start);
+        let end = moment(r.start);
+        let current_range = null;
+        r.by("day", (d) => {
+            if (isHoliday(d, this.state.holidays)) {
+                if (current_range != null) {
+                  ranges.push(current_range);
+                }
+                current_range = null;
+                end.add(1, "days");
+                start = moment(end);
+            } else {
+                current_range = moment.range(start, end);
+                end.add(1, "days"); 
+            }
+        });
+        if (current_range != null) {
+          ranges.push(current_range);
+        }
+    } else {
+        ranges.push(moment.range(...this.state.currentRange));
+    }
 
     for (const childName of Object.keys(periods)) {
       if (this.childCheckbox[childName].checked) {
-        periods[childName].push({
-          range: newRange,
-          timetable: this.state.editedTimeTable[childName]
+        ranges.forEach((newRange) => {
+          periods[childName].push({
+            range: newRange,
+            timetable: this.state.editedTimeTable[childName]
+          });
         });
       }
     }
 
+    this.setState({ periods, saveEnabled: true });
+    this.closeEdit();
+  }
+
+  closeEdit() {
     const currentRange = [
       moment().add(-1, "years"),
       moment().add(-1, "years")
     ];
 
-    this.setState({ show: false, currentRange, periods });
-  }
-
-  closeEdit() {
-    this.setState({ showEdit: false, show: false });
+    this.setState({ show: false, currentRange, showEdit: false });
   }
 
   deletePeriod(editedPeriod) {
@@ -230,7 +258,7 @@ export default class GestionContrat extends React.Component {
       p.splice(i, 1);
     }
 
-    this.setState({ periods });
+    this.setState({ periods, saveEnabled: true });
     this.closeEdit();
   }
 
@@ -246,6 +274,7 @@ export default class GestionContrat extends React.Component {
       credentials: "include",
       body: JSON.stringify(this.state.periods)
     });
+    this.setState({ saveEnabled: false });
   }
 
   onPickRange(start, end) {
@@ -499,20 +528,20 @@ export default class GestionContrat extends React.Component {
                 })}
             </DropdownButton>
             <div className="pull-right btn-toolbar">
+              <Button
+                bsStyle="primary"
+                disabled={(this.state.familyId < 0) || (! this.state.saveEnabled)}
+                onClick={() => {
+                    this.savePeriods(this.state.familyId);
+                  }}
+              >Enregistrer contrat</Button>
               {auth.admin() ? <Button
-                    bsStyle="info"
+                    bsStyle="primary"
                     disabled={this.state.familyId < 0}
                     onClick={() => {
                         this.editContract(this.state.familyId);
                       }}
                   >Editer contrat</Button> : ""}
-              <Button
-                bsStyle="primary"
-                disabled={this.state.familyId < 0}
-                onClick={() => {
-                    this.savePeriods(this.state.familyId);
-                  }}
-              >Valider contrat</Button>
             </div>
           </Col>
         </Row>
@@ -577,6 +606,12 @@ export default class GestionContrat extends React.Component {
                   </div>
                 </div>
                 <div style={{ marginTop: "1em" }} className="text-right">
+                   <Checkbox
+                      defaultChecked={false}
+                      inputRef={c => {
+                          this.holidaysCheckbox = c;
+                        }}
+                    >Omettre vacances scolaires</Checkbox>
                   <Button
                     bsStyle="primary"
                     onClick={e => {
@@ -617,6 +652,12 @@ export default class GestionContrat extends React.Component {
               })}
           </Modal.Body>
           <Modal.Footer>
+            <Checkbox
+              defaultChecked={false}
+              inputRef={c => {
+                this.holidaysCheckbox = c;
+              }}
+            >Omettre vacances scolaires</Checkbox>
             <Button
               bsStyle="primary"
               onClick={() => {

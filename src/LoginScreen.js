@@ -25,7 +25,7 @@ class LoginScreenComponent extends React.Component {
 
   loggedIn(loggedIn) {
     if (loggedIn) {
-      this.props.router.push("/application");    
+      this.props.router.push("/");    
     } else {
       this.setState({showError: true});
     }
