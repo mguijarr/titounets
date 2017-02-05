@@ -67,6 +67,13 @@ export function getFamilyName(familyData) {
     names[c.surname.toUpperCase()] = true;
   });
 
+  if (Object.keys(names).length === 0) {
+    // no child ?
+    familyData.parents.forEach(p => {
+      names[p.toUpperCase()] = true;
+    });
+  }
+
   return Object.keys(names).join(" / ");
 }
 

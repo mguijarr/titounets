@@ -41,7 +41,8 @@ export default class InfosPerso extends React.Component {
       family: {},
       enableSave: false,
       formValues: {},
-      showDelFamily: false
+      showDelFamily: false,
+      cafTills: []
     };
 
     this.addFamily = this.addFamily.bind(this);
@@ -66,6 +67,16 @@ export default class InfosPerso extends React.Component {
     this.setState({ adminView, busy: true });
 
     if (adminView) {
+      // get CAF tills
+      fetch("/api/caftills", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      }).then(checkStatus).then(parseJSON).then(res => {
+        res.push("MSA");
+        this.setState({ cafTills: res });
+      });
+
       // get all families
       fetch("/api/families", {
         method: "GET",
@@ -172,9 +183,13 @@ export default class InfosPerso extends React.Component {
     this.setState({ enableSave: true, family });
   }
 
-  synchroniseFamily(id) {
+  synchroniseFamily() {
+    const id = this.state.family.id;
+    const till = this.state.family.till;
+
     this.setState({ busy: true });
-    this.getCAFData(id, data => {
+
+    this.getCAFData(id, till, data => {
       this.setState({
         busy: false,
         enableSave: true,
@@ -184,17 +199,20 @@ export default class InfosPerso extends React.Component {
     });
   }
 
-  getCAFData(id, cb) {
+  getCAFData(id, till, cb) {
+    if (till === 'MSA') { return cb({ id, till, children:[], address:{street: ["",""] }, parents:["",""] }); }
+
     fetch("/api/caf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ id })
+      body: JSON.stringify({ id, till })
     })
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
         res.id = id;
+        res.till = till;
         cb(res);
       });
   }
@@ -213,20 +231,22 @@ export default class InfosPerso extends React.Component {
       family: new_family,
       ...this.extractFormValues(new_family)
     });
-    this.saveData(new_family.id);
+    this.saveData(new_family);
   }
 
   addFamily() {
     const id = ReactDOM.findDOMNode(this.refs.newFamilyId).value;
     const syncCAF = this.newSyncCAF.checked;
+    const till = ReactDOM.findDOMNode(this.tillSelection).value
 
     this.hideAddFamily();
 
     if (syncCAF) {
-      this.getCAFData(id, this.doAddFamily);
+      this.getCAFData(id, till, this.doAddFamily);
     } else {
       this.doAddFamily({
         id,
+        till,
         parents: [ "", "" ],
         address: { street: [ "", "" ], zip: "", city: "" },
         phone_number: "",
@@ -262,49 +282,51 @@ export default class InfosPerso extends React.Component {
     this.setState({ showDelFamily: false });
   }
 
-  saveData(id) {
-    if (id) {
-      const parents = [
-        this.state.formValues.parent1,
-        this.state.formValues.parent2
-      ];
-      const qf = this.state.formValues.qf;
-      const children = this.state.family.children;
+  saveData(family) {
+    const parents = [
+      this.state.formValues.parent1,
+      this.state.formValues.parent2
+    ];
+    const qf = this.state.formValues.qf;
+    const id = family.id;
+    const children = family.children;
+    const till = family.till;
 
-      fetch("/api/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          username: id,
+    fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        username: id,
+        till,
+        qf,
+        parents,
+        children,
+        ...getAddress(this.state.addressFields)
+      })
+    })
+    .then(checkStatus)
+    .then(res => {
+       const data = {
+          id,
+          till,
           qf,
           parents,
           children,
           ...getAddress(this.state.addressFields)
-        })
-      })
-        .then(checkStatus)
-        .then(res => {
-          const data = {
-            id,
-            qf,
-            parents,
-            children,
-            ...getAddress(this.state.addressFields)
-          };
+      };
 
-          const families = this.state.families;
+      const families = this.state.families;
 
-          for (let i = 0; i < families.length; i++) {
-            if (families[i].id == id) {
-              families[i] = data;
-              break;
-            }
-          }
+      for (let i = 0; i < families.length; i++) {
+         if (families[i].id == id) {
+          families[i] = data;
+          break;
+        }
+      }
 
-          this.setState({ families, family: data, enableSave: false });
-        });
-    }
+      this.setState({ families, family: data, enableSave: false });
+    });
   }
 
   render() {
@@ -373,7 +395,7 @@ export default class InfosPerso extends React.Component {
                     bsStyle="primary"
                     disabled={!this.state.enableSave || !family.id}
                     onClick={() => {
-                        this.saveData(family.id);
+                        this.saveData(family);
                       }}
                   >Enregistrer</Button>
                 </div>
@@ -396,13 +418,13 @@ export default class InfosPerso extends React.Component {
                   <Col sm={2}>
                     {this.state.adminView ? <Button
                           bsStyle="primary"
-                          disabled={!family.id}
+                          disabled={!family.id || family.till==="MSA"}
                           onClick={() => {
-                              this.synchroniseFamily(family.id);
+                              this.synchroniseFamily();
                             }}
                         ><Glyphicon
                           glyph="refresh"
-                        /> Synchroniser CAF</Button> : ""}
+                        /> Synchroniser</Button> : ""}
                   </Col>
                   <Col sm={2} componentClass={ControlLabel}>QF</Col>
                   <Col sm={2}>
@@ -477,9 +499,21 @@ export default class InfosPerso extends React.Component {
                   <Checkbox
                     inputRef={c => {
                         this.newSyncCAF = c;
-                      }}
+                    }}
                     defaultChecked
-                  >Synchroniser CAF</Checkbox>
+                  >Remplissage auto</Checkbox>
+                </Col>
+              </FormGroup>
+            </Form>
+            <Form horizontal>
+              <FormGroup>
+                <Col sm={4} componentClass={ControlLabel}>Caisse</Col>
+                <Col sm={4}>
+                  <FormControl componentClass="select" ref={(select)=>{this.tillSelection=select}}>
+                    {this.state.cafTills.map((till, i) => {
+                      return <option value={till} key={i}>{till}</option>
+                    })}
+                  </FormControl>
                 </Col>
               </FormGroup>
             </Form>
