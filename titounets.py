@@ -59,9 +59,7 @@ def login():
     password = str(content['password'])
     
     db, etablissement = get_db_et(et)
-    caf_username, caf_passwd = etablissement["caf"]
-    session["caf_username"] = caf_username
-    session["caf_passwd"] = caf_passwd
+    session["caf"] = etablissement["caf"]
     db_id = etablissement["id"]
     session["etablissement"] = et
 
@@ -94,7 +92,8 @@ def extract_family_data(db, username):
                           "city": family.pop("city"),
                           "zip": family.pop("zip") }
     family['parents'] = [family.pop('parent1'), family.pop('parent2')]
-
+    if not 'till' in family:
+      family['till'] = 'Grenoble'
     return family
 
 def extract_families(db):
@@ -227,6 +226,7 @@ def save():
 
     content = request.get_json()
     username = content["username"]
+    till = content["till"]
     parent1, parent2 = content["parents"]
     address1, address2 = content["address"]["street"]
     zip = content["address"]["zip"]
@@ -259,6 +259,7 @@ def save():
         p.hset(username, "phone_number", phone_number)
         p.hset(username, "qf", qf)
         p.hset(username, "id", username)
+        p.hset(username, "till", till)
         for i, child_data in enumerate(children):
           key = "%s:children:%d" % (username, i) 
           p.hset(key, "name", child_data["name"])
@@ -277,10 +278,21 @@ def retrieve_caf_data():
 
   content = request.get_json()
   caf_id = content['id']
-
-  result = caf.get_data(caf_id, session["caf_username"], session["caf_passwd"])
+  till = content['till'].encode("utf-8")
+  caf_data = session["caf"][till]
+  username = caf_data[0]
+  password = caf_data[1]
+  
+  result = caf.get_data(caf_id, username, password)
 
   return jsonify(result)
+
+@app.route("/api/caftills", methods=["GET"])
+def get_caf_tills():
+  if not session["admin"]:
+    return make_response("", 401)
+
+  return jsonify(session["caf"].keys())
 
 @app.route("/api/parameters", methods=["GET"])
 def get_parameters():

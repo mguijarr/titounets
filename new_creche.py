@@ -17,11 +17,17 @@ for et in ets_dict.itervalues():
 new_id = last_id + 1
 
 name = raw_input("name ? ")
-caf_username = raw_input("CAF username ? ")
-caf_passwd = raw_input("CAF password ? ")
+caf_data = {}
+while True:
+  caf = raw_input("CAF ? ")
+  if not caf: 
+    break
+  caf_username = raw_input("CAF username ? ")
+  caf_passwd = raw_input("CAF password ? ")
+  caf_data[caf] = [caf_username, caf_passwd]
 key = str(uuid.uuid4())
 
-ets_dict[key] = { "name": name, "caf": (caf_username, caf_passwd), "id": new_id }
+ets_dict[key] = { "name": name, "caf": caf_data, "id": new_id }
 
 with file(os.path.join(os.path.dirname(__file__), "etablissements.cfg"), "w") as f:
   f.write(json.dumps(ets_dict, ensure_ascii=False))
