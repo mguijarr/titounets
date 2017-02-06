@@ -87,13 +87,7 @@ export default class InfosPerso extends React.Component {
         .then(parseJSON)
         .then(res => {
           this.setState({
-            families: res.sort((a, b) => {
-              if (getFamilyName(a) < getFamilyName(b)) {
-                return -1;
-              } else {
-                return 1;
-              }
-            })
+            families: res
           });
           this.loadFamily(null);
         });
@@ -221,13 +215,7 @@ export default class InfosPerso extends React.Component {
     const families = this.state.families;
     families.push(new_family);
     this.setState({
-      families: families.sort((a, b) => {
-        if (getFamilyName(a) < getFamilyName(b)) {
-          return -1;
-        } else {
-          return 1;
-        }
-      }),
+      families,
       family: new_family,
       ...this.extractFormValues(new_family)
     });
@@ -337,7 +325,13 @@ export default class InfosPerso extends React.Component {
     const family = Object.assign({ id: null, children: [] }, this.state.family);
 
     const familiesList = this.state.adminView
-      ? this.state.families.map((f, i) => {
+      ? this.state.families.sort((a, b) => {
+          if (getFamilyName(a) < getFamilyName(b)) {
+            return -1;
+          } else {
+            return 1;
+          }
+        }).map((f, i) => {
         return (
           <div>
             <Button
