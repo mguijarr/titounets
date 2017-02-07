@@ -35,19 +35,16 @@ class MainApp extends React.Component {
           </Navbar.Header>
           <Nav>
             {auth.admin() ? <LinkContainer to="/parametres">
-                  <NavItem eventKey={0}><img src="img/abacus.svg" style={{width: '48px', height: 'auto'}}/>Paramètres</NavItem>
+                  <NavItem eventKey={0}><img src="img/puzzle.svg" style={{width: '48px', height: 'auto'}}/>{' '}Paramètres</NavItem>
                 </LinkContainer> : ""}
-            <LinkContainer to="/infosperso">
+            <LinkContainer to="/gestion">
               <NavItem eventKey={1}>
                 <img src="img/girl.svg" style={{width: '48px', height: 'auto'}}/>
-                {auth.admin() ? "Familles" : "Famille"}
+                {auth.admin() ? "Gestion Familles" : "Gestion"}
               </NavItem>
             </LinkContainer>
-            <LinkContainer to="/gestioncontrat">
-              <NavItem eventKey={3}><img src="img/abc.svg" style={{width: '48px', height: 'auto'}}/>{auth.admin() ? "Contrats" : "Contrat"}</NavItem>
-            </LinkContainer>
             {auth.admin() ? <LinkContainer to="/heures">
-                  <NavItem eventKey={3}><img src="img/alarm-clock.svg" style={{width: '48px', height: 'auto'}}/>Heures réalisées</NavItem>
+                  <NavItem eventKey={3}><img src="img/abacus.svg" style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
                 </LinkContainer> : ""}
           </Nav>
           <Nav pullRight>
