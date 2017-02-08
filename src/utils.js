@@ -310,4 +310,22 @@ export function isClosed(day, closedPeriods) {
     return moment(day).within(p);
   }) || isWeekend(day) || isBankHoliday(day);
 }
+
+export function getCAFData(id, till, cb) {
+    if (till === 'MSA') { return cb({ id, till, children:[], address:{street: ["",""] }, parents:["",""] }); }
+
+    fetch("/api/caf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ id, till })
+    })
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(res => {
+        res.id = id;
+        res.till = till;
+        cb(res);
+      });
+}
  
