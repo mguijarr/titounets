@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
+import { withRouter } from 'react-router';
 import DatePicker from "react-bootstrap-date-picker";
 import { Calendar } from "react-yearly-calendar";
 import {
@@ -35,7 +36,7 @@ import "moment-range";
 import "moment/locale/fr";
 import "./css/calendar.css!";
 
-export default class Parametres extends React.Component {
+class Parametres extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
   constructor(props) {
     super(props);
@@ -77,6 +78,12 @@ export default class Parametres extends React.Component {
   }
 
   componentDidMount() {
+    this.props.router.setRouteLeaveHook(this.props.route, () => {
+      if (this.state.enableSave) {
+        return "Des champs sont en cours d'édition, êtes-vous sûr de changer de page sans enregistrer ?"
+      }
+    });
+
     fetch("/api/holidays", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -502,3 +509,5 @@ export default class Parametres extends React.Component {
     );
   }
 }
+
+export default withRouter(Parametres);

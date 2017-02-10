@@ -57,11 +57,9 @@ export default class GestionContrat extends React.Component {
       contractRange: moment.range(last_year, last_year),
       enabled: false,
       periods: {},
+      closedPeriods: [],
       childOrder2Name: {},
       address: {},
-      familyId: -1,
-      family: {},
-      families: [],
       saveEnabled: false
     };
 
@@ -73,7 +71,6 @@ export default class GestionContrat extends React.Component {
     this.checkChildForDay = this.checkChildForDay.bind(this);
     this.deletePeriod = this.deletePeriod.bind(this);
     this.closeEdit = this.closeEdit.bind(this);
-    this.familySelected = this.familySelected.bind(this);
     this.editContract = this.editContract.bind(this);
     this.contractYearPeriods = this.contractYearPeriods.bind(this);
     this.timeTableChanged = this.timeTableChanged.bind(this);
@@ -93,8 +90,8 @@ export default class GestionContrat extends React.Component {
   }
 
   getPeriods(familyId) {
-    this.setState({ busy: true });
-    fetch("/api/periods/" + familyId, {
+    //this.setState({ busy: true });
+    return fetch("/api/periods/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -111,8 +108,12 @@ export default class GestionContrat extends React.Component {
           });
         }
         // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
-        this.setState({ busy: false, childOrder2Name, periods: res });
+        this.setState({ childOrder2Name, periods: res });
       });
+  }
+
+  componentWillReceiveProps(nextProps) {
+    this.getPeriods(nextProps.family.id);
   }
 
   componentWillMount() {
@@ -121,6 +122,7 @@ export default class GestionContrat extends React.Component {
 
     this.setState({ busy: true });
 
+    const promises = [
     fetch("/api/parameters", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -146,7 +148,7 @@ export default class GestionContrat extends React.Component {
           address: res.address,
           name: res.name
         });
-      });
+      }),
 
     fetch("/api/holidays", {
       method: "GET",
@@ -156,45 +158,11 @@ export default class GestionContrat extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        this.setState({ busy: false, holidays: res });
-      });
+        this.setState({ holidays: res });
+      }),
+      this.getPeriods(this.props.family.id)]
 
-    if (auth.admin()) {
-      // get all families
-      fetch("/api/families", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include"
-      })
-        .then(checkStatus)
-        .then(parseJSON)
-        .then(res => {
-          const family = {};
-          res.forEach(f => {
-            family[f.id] = f;
-          });
-          this.setState({
-            families: res.sort((a, b) => {
-              if (getFamilyName(a) < getFamilyName(b)) {
-                return -1;
-              } else {
-                return 1;
-              }
-            }),
-            family,
-            busy: false
-          });
-        });
-    } else if (auth.loggedIn()) {
-      this.setState({ familyId: auth.familyId() });
-
-      this.getPeriods(auth.familyId());
-    }
-  }
-
-  familySelected(familyId) {
-    this.setState({ familyId });
-    this.getPeriods(familyId);
+    Promise.all(promises).then(() => { this.setState({busy: false })});
   }
 
   addPeriod() {
@@ -347,9 +315,9 @@ export default class GestionContrat extends React.Component {
     });
   }
 
-  editContract(familyId) {
+  editContract() {
     let c = new Contract();
-    let f = this.state.family[this.state.familyId];
+    let f = this.props.family;
     let content = [];
 
     f.children.forEach(child => {
@@ -408,7 +376,7 @@ export default class GestionContrat extends React.Component {
       return <h3>Opération non disponible</h3>;
     }
 
-    const pointerEventsCalendar = this.state.familyId >= 0 ? "auto" : "none";
+    const pointerEventsCalendar = this.props.family.id >= 0 ? "auto" : "none";
 
     const customCss = {
       holiday: day => {
@@ -502,44 +470,21 @@ export default class GestionContrat extends React.Component {
     return (
       <Grid>
         <Row>
-          <Col lg={1}>
-            <h4 style={{ marginTop: "10px", marginBottom: "30px" }}>
-              Famille:
-            </h4>
-          </Col>
-          <Col lg={11}>
-            <DropdownButton
-              title={
-                this.state.familyId >= 0
-                  ? getFamilyName(this.state.family[this.state.familyId]) +
-                    " (" +
-                    this.state.familyId +
-                    ")"
-                  : "Liste"
-              }
-              key={1}
-            >
-              {this.state.families.map((f, i) => {
-                  return (
-                    <MenuItem eventKey={f.id} onSelect={this.familySelected}>
-                      {getFamilyName(f) + " (" + f.id + ")"}
-                    </MenuItem>
-                  );
-                })}
-            </DropdownButton>
-            <div className="pull-right btn-toolbar">
+          <Col lg={12}>
+            <div className="pull-right" style={{marginTop: "15px", marginBottom:"15px"}}>
               <Button
                 bsStyle="primary"
-                disabled={(this.state.familyId < 0) || (! this.state.saveEnabled)}
+                disabled={(this.props.family.id < 0) || (! this.state.saveEnabled)}
                 onClick={() => {
-                    this.savePeriods(this.state.familyId);
+                    this.savePeriods(this.props.family.id);
                   }}
               >Enregistrer contrat</Button>
+              {auth.admin() ? "    " : ""}
               {auth.admin() ? <Button
                     bsStyle="primary"
-                    disabled={this.state.familyId < 0}
+                    disabled={this.props.family.id < 0}
                     onClick={() => {
-                        this.editContract(this.state.familyId);
+                        this.editContract(this.props.family.id);
                       }}
                   >Editer contrat</Button> : ""}
             </div>
