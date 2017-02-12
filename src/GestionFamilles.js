@@ -12,6 +12,7 @@ import {
   FormControl,
   ControlLabel,
   Button,
+  ButtonToolbar,
   Label,
   Glyphicon,
   Overlay,
@@ -70,7 +71,7 @@ class GestionFamilles extends React.Component {
   componentDidMount() {
     this.props.router.setRouteLeaveHook(this.props.route, () => {
       if (this.state.enableSave) {
-        return "Des champs sont en cours d'édition, êtes-vous sûr de changer de page sans enregistrer ?"
+        return "Des champs ont été édités, êtes-vous sûr de changer de page sans enregistrer ?"
       }
     });
 
@@ -238,9 +239,9 @@ class GestionFamilles extends React.Component {
   }
 
   childChanged(child_i, key, value) {
-    const family = this.props.family;
+    const family = this.state.selectedFamily;
     family.children[child_i][key] = value;
-    this.setState({ enableSave: true, family });
+    this.setState({ enableSave: true, selectedFamily: family });
   }
 
   saveData() {
@@ -319,25 +320,25 @@ class GestionFamilles extends React.Component {
         <div>
           <Col lg={12}>
             <Row>
-              <Col lg={12}>
-                <div
-                  className="pull-right"
-                  style={{ marginTop: "15px", marginBottom: "15px" }}
-                >{auth.admin() ? <Button
-                  bsStyle="primary"
-                  disabled={Object.keys(family).length === 0 || family.till === "MSA"}
-                  onClick={this.synchroniseFamily}
-                ><Glyphicon
-                      glyph="refresh"
-                    /> Synchroniser CAF</Button> : ""}
-                    {"    "}
+              <div className="pull-right" style={{marginTop: '15px'}}>
+                <ButtonToolbar>
+                  {auth.admin() ? 
                   <Button
-                    bsStyle="primary"
-                    disabled={!this.state.enableSave || !family.id}
-                    onClick={this.saveData}
-                  >Enregistrer</Button>
-                </div>
-              </Col>
+                    disabled={Object.keys(family).length === 0 || family.till === "MSA"}
+                    onClick={this.synchroniseFamily}
+                  ><Glyphicon
+                        glyph="refresh"
+                      /> Synchroniser CAF</Button> : ""}
+                    <Button
+                      bsStyle="primary"
+                      disabled={!this.state.enableSave || !family.id}
+                      onClick={this.saveData}
+                    >Enregistrer</Button>
+                </ButtonToolbar>
+              </div>
+            </Row>
+            <Row>
+            <h3>Famille</h3>
             </Row>
             <Row>
               <Form horizontal>
@@ -390,13 +391,12 @@ class GestionFamilles extends React.Component {
               formValues={this.state.addressFields}
             />
             <Row>
-              <Col lg={12}>
-                <h3>Enfants</h3>
-              </Col>
             </Row>
+            <h3>Enfants</h3>
             <Row>
-              <Col lg={12}>
                 {Object.keys(family).length > 0 ? family.children.map((c, i) => {
+                  if (c.deleted) { return "" }
+                  if (c.present === undefined) { c.present = "1" };
                   return (
                     <ChildData
                       data={c}
@@ -407,7 +407,11 @@ class GestionFamilles extends React.Component {
                     />
                   );
                 }) : ""}
-              </Col>
+            </Row>
+            <Row>
+              <div className="pull-right" style={{marginTop: '15px'}}>
+                  <Button bsStyle="primary"><Glyphicon glyph="plus"/> Ajouter enfant</Button>
+              </div>
             </Row>
           </Col>
         </div>
@@ -434,9 +438,9 @@ class GestionFamilles extends React.Component {
         {adminView ? <Row>
           <span>
             {families}{'   '}
-            <Button bsStyle="primary" onClick={() => { this.setState({ showAddFamily: true }) }}><Glyphicon glyph="plus" /> Ajouter</Button>
+            <Button bsStyle="primary" onClick={() => { this.setState({ showAddFamily: true }) }}><Glyphicon glyph="plus" />Ajouter famille</Button>
             {'   '}
-            <Button bsStyle="primary" onClick={() => { this.setState({ showDelFamily: true }) }}><Glyphicon glyph="remove" /> Supprimer</Button>
+            <Button bsStyle="primary" onClick={() => { this.setState({ showDelFamily: true }) }}><Glyphicon glyph="remove" />Supprimer famille</Button>
           </span>
         </Row> : ""}
         <p>{' '}</p>

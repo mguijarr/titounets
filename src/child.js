@@ -9,6 +9,8 @@ import {
   FormControl,
   ControlLabel,
   Button,
+  InputGroup,
+  Checkbox,
   Label,
   Glyphicon,
   Panel,
@@ -16,16 +18,22 @@ import {
 } from "react-bootstrap";
 import DatePicker from "react-bootstrap-date-picker";
 import { TextInput } from "./utils";
+import auth from './auth';
 
 export default class ChildData extends React.Component {
   constructor(props) {
     super(props);
 
     this.dataChanged = this.dataChanged.bind(this);
+    this.presentClicked = this.presentClicked.bind(this);
   }
 
   dataChanged(key, value) {
     this.props.onChange(key, value);
+  }
+
+  presentClicked(e) {
+    this.props.onChange("present", e.target.checked ? "1" : "0");
   }
 
   render() {
@@ -33,7 +41,7 @@ export default class ChildData extends React.Component {
       <Form horizontal>
         <FormGroup>
           <Col sm={2} componentClass={ControlLabel}>Nom</Col>
-          <Col sm={4}>
+          <Col sm={3}>
             <TextInput
               readOnly={this.props.readOnly}
               valueObject={this.props.data}
@@ -42,18 +50,23 @@ export default class ChildData extends React.Component {
             />
           </Col>
           <Col sm={2} componentClass={ControlLabel}>Prénom</Col>
-          <Col sm={4}>
-            <TextInput
-              readOnly={this.props.readOnly}
-              valueObject={this.props.data}
-              valueKey="name"
-              onChange={this.dataChanged}
-            />
+          <Col sm={3}>
+               <TextInput
+                readOnly={this.props.readOnly}
+                valueObject={this.props.data}
+                valueKey="name"
+                onChange={this.dataChanged}
+               />
+          </Col>
+          <Col sm={2}>
+            {auth.admin() ? <div className="pull-right">
+              <Button><Glyphicon glyph="remove"/></Button>
+            </div> : "" }
           </Col>
         </FormGroup>
         <FormGroup>
           <Col sm={2} componentClass={ControlLabel}>Date de naissance</Col>
-          <Col sm={10}>
+          <Col sm={3}>
             <DatePicker
               disabled={this.props.readOnly}
               onChange={d => {
@@ -80,6 +93,12 @@ export default class ChildData extends React.Component {
               value={this.props.data.birthdate}
             />
           </Col>
+          { auth.admin() ? <div>
+            <Col sm={2} componentClass={ControlLabel}>Inscrit</Col> 
+            <Col sm={1}>
+              <Checkbox readOnly={this.props.readOnly} onChange={this.presentClicked} checked={this.props.data.present === '1'}/>
+            </Col>
+         </div> : "" }
         </FormGroup>
       </Form>
     );

@@ -58,7 +58,7 @@ export default class GestionContrat extends React.Component {
       enabled: false,
       periods: {},
       closedPeriods: [],
-      childOrder2Name: {},
+      childIndex2Name: {},
       address: {},
       saveEnabled: false
     };
@@ -99,16 +99,19 @@ export default class GestionContrat extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        const childOrder2Name = {};
+        const childIndex2Name = {};
         let i = 0;
         for (const childName of Object.keys(res)) {
-          childOrder2Name[i] = childName; i++;
-          res[childName].forEach(p => {
-            p.range = moment.range(p.range.start, p.range.end);
-          });
+          if ((res[childName].present === undefined) || (res[childName].present === "1")) {
+            childIndex2Name[i] = childName;
+            res[childName].forEach(p => {
+              p.range = moment.range(p.range.start, p.range.end);
+            });
+          }
+          i++;
         }
         // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
-        this.setState({ childOrder2Name, periods: res });
+        this.setState({ childIndex2Name, periods: res });
       });
   }
 
@@ -292,11 +295,11 @@ export default class GestionContrat extends React.Component {
   }
 
   checkChildForDay(day, childIndex) {
-    if (Object.keys(this.state.childOrder2Name).length > childIndex) {
+    if (this.state.childIndex2Name[childIndex] !== undefined) {
       if (isClosed(day, this.state.closedPeriods)) {
         return false;
       }
-      const childName = this.state.childOrder2Name[childIndex];
+      const childName = this.state.childIndex2Name[childIndex];
       for (const p of this.state.periods[childName]) {
         if (day._isValid && day.within(p.range)) {
           if (p.timetable[day.weekday() + 1]) {
