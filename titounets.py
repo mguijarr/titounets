@@ -77,15 +77,21 @@ def logout():
     session.clear()
     return make_response("", 200)
 
-def extract_family_data(db, username):
+def extract_family_data(db, username): #, present_children_only=False):
     db, _ = get_db_et(session["etablissement"])
     family = db.hgetall(username)
 
     family["children"] = []
-    for k in db.keys("%s:children:*" % username):
+    #db.scan_iter(match="*:children:*:periods")
+    for k in db.scan_iter(match="%s:children:*" % username):
         if 'periods' in k:
             continue
         family["children"].append(db.hgetall(k))
+        #if family["children"][-1].get("deleted", False):
+        #    family["children"].pop()
+        #    continue
+        #if present_children_only and not family["children"][-1].get("present", True):
+        #    family["children"].pop()
 
     family.pop("password")
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
@@ -99,7 +105,7 @@ def extract_family_data(db, username):
 def extract_families(db):
     families = []
 
-    for k in db.keys('*'):
+    for k in db.scan_iter(): #keys('*'):
       if k == 'admin' or k.startswith('session:') or k.startswith("parameters"):
         continue
       if not ':children:' in k:
@@ -122,15 +128,16 @@ def get_children(date):
       return make_response("", 401)   
     
     db, _ = get_db_et(session["etablissement"])
-    child_periods_keys = db.keys("*:children:*:periods")
     result = list()
     day = dateutil.parser.parse(date).date()
     local_tz = pytz.timezone("Europe/Paris")
 
-    for k in child_periods_keys:
+    for k in db.scan_iter(match="*:children:*:periods"):
       username,_,child_index,_ = k.split(":")
       family_data = extract_family_data(db, username)
       child = family_data["children"][int(child_index)]
+      if child.get("deleted") or not bool(int(child.get("present", "1"))):
+        continue        
 
       periods = map(json.loads, db.lrange(k, 0, -1))
       date_ranges = list()
@@ -143,7 +150,6 @@ def get_children(date):
         if start.date() <= day <= end.date():
           timetable = periods[period_index]["timetable"]
           hours = timetable[str(day.weekday()+1)]
-          print hours
           if hours:
             contract_start_time = hours[0]
             contract_end_time = hours[1]
@@ -164,6 +170,8 @@ def get_children_periods(username):
         family = extract_family_data(db, username)
         res = dict()
         for i, c in enumerate(family['children']):
+           if c.get("deleted") or not bool(int(c.get("present", "1"))):
+             continue
            key = "%d:children:%s:periods" % (username, i) 
            res[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
 
@@ -200,15 +208,30 @@ def del_family():
     content = request.get_json()
     username = content["username"]
 
-    children = db.keys(username+':children:*')
-
     with db.pipeline() as p:
       p.delete(username)
-      for c in children:
+      for c in db.scan_iter(match=username+":children:*"):
         p.delete(c)
       p.execute()
 
     return jsonify(extract_families(db))
+
+@app.route("/api/delchild", methods=["POST"])
+def del_child():
+    if not session['admin']:
+      return make_response("", 401)
+    db, _ = get_db_et(session["etablissement"])
+
+    content = request.get_json()
+    username = content["username"]
+    child_index = content["child_index"]
+    
+    with db.pipeline() as p:
+        p.hset(username+":"+"children:"+child_index, "deleted", "1")
+        p.hset(username+":"+"children:"+child_index, "name", "__deleted__")
+        p.execute()
+
+    return jsonify(extract_family_data(db, username))
 
 @app.route("/api/family/<int:username>", methods=["GET"])
 def get_family(username):
@@ -265,6 +288,7 @@ def save():
           p.hset(key, "name", child_data["name"])
           p.hset(key, "surname", child_data["surname"])
           p.hset(key, "birthdate", child_data["birthdate"])
+          p.hset(key, "present", child_data.get("present", "1"))
         p.execute()
 
     return make_response("", 200)
