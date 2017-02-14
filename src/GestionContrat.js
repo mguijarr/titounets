@@ -58,9 +58,9 @@ export default class GestionContrat extends React.Component {
       enabled: false,
       periods: {},
       closedPeriods: [],
-      childIndex2Name: {},
       address: {},
-      saveEnabled: false
+      saveEnabled: false,
+      family: null
     };
 
     this.onPickRange = this.onPickRange.bind(this);
@@ -99,23 +99,18 @@ export default class GestionContrat extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        const childIndex2Name = {};
-        let i = 0;
         for (const childName of Object.keys(res)) {
-          if ((res[childName].present === undefined) || (res[childName].present === "1")) {
-            childIndex2Name[i] = childName;
             res[childName].forEach(p => {
               p.range = moment.range(p.range.start, p.range.end);
             });
-          }
-          i++;
         }
         // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
-        this.setState({ childIndex2Name, periods: res });
+        this.setState({ periods: res, busy: false });
       });
   }
 
   componentWillReceiveProps(nextProps) {
+    this.setState({ busy: true });
     this.getPeriods(nextProps.family.id);
   }
 
@@ -295,12 +290,14 @@ export default class GestionContrat extends React.Component {
   }
 
   checkChildForDay(day, childIndex) {
-    if (this.state.childIndex2Name[childIndex] !== undefined) {
+    const childName = Object.keys(this.props.family.children)[childIndex];
+    if (childName === undefined) { return false };
+    const child = this.props.family.children[childName]; 
+    if ((child.present === undefined) || (child.present === "1")) {
       if (isClosed(day, this.state.closedPeriods)) {
         return false;
       }
-      const childName = this.state.childIndex2Name[childIndex];
-      for (const p of this.state.periods[childName]) {
+      for (const p of this.state.periods[child.name]) {
         if (day._isValid && day.within(p.range)) {
           if (p.timetable[day.weekday() + 1]) {
             return true;
@@ -323,7 +320,8 @@ export default class GestionContrat extends React.Component {
     let f = this.props.family;
     let content = [];
 
-    f.children.forEach(child => {
+    Object.keys(f.children).forEach(childName => {
+      const child = f.children[childName];
       const periods = this.contractYearPeriods(child.name);
       if (periods.length > 0) {
         content.push(

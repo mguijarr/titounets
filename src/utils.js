@@ -63,7 +63,8 @@ export function parseJSON(response) {
 export function getFamilyName(familyData) {
   const names = {};
 
-  familyData.children.forEach(c => {
+  Object.keys(familyData.children).forEach((childName) => {
+    const c = familyData.children[childName];
     names[c.surname.toUpperCase()] = true;
   });
 
@@ -312,7 +313,7 @@ export function isClosed(day, closedPeriods) {
 }
 
 export function getCAFData(id, till, cb) {
-    if (till === 'MSA') { return cb({ id, till, children:[], address:{street: ["",""] }, parents:["",""] }); }
+    if (till === 'MSA') { return cb({ id, till, children:{}, address:{street: ["",""] }, parents:["",""] }); }
 
     fetch("/api/caf", {
       method: "POST",

@@ -77,21 +77,16 @@ def logout():
     session.clear()
     return make_response("", 200)
 
-def extract_family_data(db, username): #, present_children_only=False):
+def extract_family_data(db, username):
     db, _ = get_db_et(session["etablissement"])
     family = db.hgetall(username)
 
-    family["children"] = []
-    #db.scan_iter(match="*:children:*:periods")
+    family["children"] = {}
     for k in db.scan_iter(match="%s:children:*" % username):
         if 'periods' in k:
             continue
-        family["children"].append(db.hgetall(k))
-        #if family["children"][-1].get("deleted", False):
-        #    family["children"].pop()
-        #    continue
-        #if present_children_only and not family["children"][-1].get("present", True):
-        #    family["children"].pop()
+        child_name = k.split(":")[-1].replace(" ", "_")
+        family["children"][child_name] = db.hgetall(k)
 
     family.pop("password")
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
@@ -133,10 +128,10 @@ def get_children(date):
     local_tz = pytz.timezone("Europe/Paris")
 
     for k in db.scan_iter(match="*:children:*:periods"):
-      username,_,child_index,_ = k.split(":")
+      username,_,child_name,_ = k.split(":")
       family_data = extract_family_data(db, username)
-      child = family_data["children"][int(child_index)]
-      if child.get("deleted") or not bool(int(child.get("present", "1"))):
+      child = family_data["children"][child_name]
+      if not bool(int(child.get("present", "1"))):
         continue        
 
       periods = map(json.loads, db.lrange(k, 0, -1))
@@ -169,10 +164,10 @@ def get_children_periods(username):
     if session['admin'] or int(session["username"]) == username:
         family = extract_family_data(db, username)
         res = dict()
-        for i, c in enumerate(family['children']):
-           if c.get("deleted") or not bool(int(c.get("present", "1"))):
+        for child_name, c in family['children'].iteritems():
+           if not bool(int(c.get("present", "1"))):
              continue
-           key = "%d:children:%s:periods" % (username, i) 
+           key = "%d:children:%s:periods" % (username, child_name.replace(" ", "_")) 
            res[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
 
         return jsonify(res)
@@ -186,8 +181,7 @@ def set_children_periods(username):
         periods = request.get_json()
         family_data = extract_family_data(db, username)
         for child_name in periods:
-           i = [child_name==c["name"] for c in family_data["children"]].index(True)
-           key = "%d:children:%s:periods" % (username, i)
+           key = "%d:children:%s:periods" % (username, child_name.replace(" ", "_"))
            plist = map(json.dumps, periods[child_name])
            with db.pipeline() as P:
                P.delete(key)
@@ -223,12 +217,13 @@ def del_child():
     db, _ = get_db_et(session["etablissement"])
 
     content = request.get_json()
-    username = content["username"]
-    child_index = content["child_index"]
-    
+    username = int(content["username"])
+    child_name = content["child_name"].replace(" ", "_")
+    key = "%d:children:%s" % (username, child_name)   
+ 
     with db.pipeline() as p:
-        p.hset(username+":"+"children:"+child_index, "deleted", "1")
-        p.hset(username+":"+"children:"+child_index, "name", "__deleted__")
+        p.delete(key)
+        p.delete(key+":periods")
         p.execute()
 
     return jsonify(extract_family_data(db, username))
@@ -283,8 +278,8 @@ def save():
         p.hset(username, "qf", qf)
         p.hset(username, "id", username)
         p.hset(username, "till", till)
-        for i, child_data in enumerate(children):
-          key = "%s:children:%d" % (username, i) 
+        for child_name, child_data in children.iteritems():
+          key = "%s:children:%s" % (username, child_data["name"].replace(" ", "_")) 
           p.hset(key, "name", child_data["name"])
           p.hset(key, "surname", child_data["surname"])
           p.hset(key, "birthdate", child_data["birthdate"])
@@ -295,7 +290,7 @@ def save():
 
 @app.route("/api/caf", methods=["POST"])
 def retrieve_caf_data():
-  """{'address': {'city': u'ST LAURENT DU PONT', 'street': [u'1579 CHEMIN DES COTES DE VILLETTE', u''], 'zip': u'38380'}, 'parents': [u'SAMIRA ACAJJAOUI', u'MATHIAS GUIJARRO'], 'children': [{'surname': u'GUIJARRO', 'name': u'ELIAS', 'birthdate': '2013-06-15T00:00:00'}, {'surname': u'GUIJARRO', 'name': u'SARA', 'birthdate': '2011-09-06T00:00:00'}], 'qf': 77785.0}
+  """{'address': {'city': u'ST LAURENT DU PONT', 'street': [u'1579 CHEMIN DES COTES DE VILLETTE', u''], 'zip': u'38380'}, 'parents': [u'SAMIRA ACAJJAOUI', u'MATHIAS GUIJARRO'], 'children': {'ELIAS': {'surname': u'GUIJARRO', 'name': u'ELIAS', 'birthdate': '2013-06-15T00:00:00'}, 'SARA': {'surname': u'GUIJARRO', 'name': u'SARA', 'birthdate': '2011-09-06T00:00:00'}}, 'qf': 77785.0}
   """
   if not session["admin"]:
     return make_response("", 401)
