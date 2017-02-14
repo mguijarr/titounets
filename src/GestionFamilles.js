@@ -162,7 +162,7 @@ class GestionFamilles extends React.Component {
         phone_number: "",
         email: "",
         qf: 0,
-        children: []
+        children: {}
       });
     }
   }
@@ -238,9 +238,9 @@ class GestionFamilles extends React.Component {
     this.setState({ enableSave: true, addressFields });
   }
 
-  childChanged(child_i, key, value) {
+  childChanged(childName, key, value) {
     const family = this.state.selectedFamily;
-    family.children[child_i][key] = value;
+    family.children[childName][key] = value;
     this.setState({ enableSave: true, selectedFamily: family });
   }
 
@@ -394,7 +394,8 @@ class GestionFamilles extends React.Component {
             </Row>
             <h3>Enfants</h3>
             <Row>
-                {Object.keys(family).length > 0 ? family.children.map((c, i) => {
+                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
+                  const c = family.children[childName];
                   if (c.deleted) { return "" }
                   if (c.present === undefined) { c.present = "1" };
                   return (
@@ -402,7 +403,7 @@ class GestionFamilles extends React.Component {
                       data={c}
                       readOnly={!auth.admin()}
                       onChange={(k, v) => {
-                        this.childChanged(i, k, v);
+                        this.childChanged(childName, k, v);
                       }}
                     />
                   );

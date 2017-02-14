@@ -46,8 +46,8 @@ export default class Contract {
       0.01,
       0.01
     ];
-    const enfant = family.children.length > 1 ? "enfants" : "enfant";
-    const CAFrate = rates[family.children.length];
+    const n = Object.keys(family.children).length;
+    const CAFrate = rates[n];
     let rate = monthlyIncome * CAFrate / 100.;
     let monthlyAmount = 0;
 
@@ -211,7 +211,7 @@ export default class Contract {
         columns: [
           { text: "Taux horaire:", width: "20%" },
           {
-            text: `${rate}, en application du taux CAF ${CAFrate} (${family.children.length} ${enfant} dans la famille)`,
+            text: `${rate}, en application du taux CAF ${CAFrate} (${n} ${n > 1 ? "enfants" : "enfant"} dans la famille)`,
             width: "80%"
           }
         ]

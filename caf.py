@@ -98,12 +98,12 @@ def get_data(matricule, USERNAME, PASSWORD):
 
     soup = BeautifulSoup(rrrrr.text, "lxml")
     children_nodes = [x.parent for x in soup.find_all("td", string=lambda s: re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", s) if s else False)]
-    children = []
+    children = {}
     for child_node in children_nodes:
       surname, name, birthdate = filter(None, [x.text.strip()  for x in child_node.find_all("td")])
       birthdate = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", birthdate).group()
       birthdate = dateparser.parse(birthdate).isoformat()
-      children.append({"surname": surname, "name": name, "birthdate": birthdate });
+      children[name] = { "surname": surname, "name": name, "birthdate": birthdate }
     
     result['children'] = children
 
