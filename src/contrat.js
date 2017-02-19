@@ -2,32 +2,18 @@ import { formatClockTime, isClosed } from "./utils";
 import moment from "moment";
 
 export default class Contract {
-  constructor() {
+  constructor(family) {
     this.jours = moment.weekdays(true);
     this.today = moment().format("LL");
+   
+    this.getContents = this.getContents.bind(this);
+    this.calcRate = this.calcRate.bind(this);
+
+    this.family = family;
   }
 
-  getContents(name, address, contractPeriod, closedPeriods, family, child, childPeriods) {
-    const f = family;
-    const cStart = contractPeriod.start.format("L");
-    const cEnd = contractPeriod.end.format("L");
-    const familyName1 = family.parents[0].split(" ").pop();
-    const familyName2 = family.parents[1]
-      ? family.parents[1].split(" ").pop()
-      : "";
-    let familyName = "";
-    if (familyName2 === familyName1) {
-      familyName = familyName1;
-    } else if (familyName2) {
-      familyName = familyName1 + " / " + familyName2;
-    }
-    const birthDate = moment(new Date(child.birthdate)).format("L");
-    const periods = [];
-    let nHours = 0;
-    let nMonths = 0;
-    //let nHoursMonth = 0;
-    let nDays = 0;
-    const monthlyIncome = Number(family.qf / 12).toFixed(2);
+  calcRate() {
+    const monthlyIncome = Number(this.family.qf / 12).toFixed(2);
     const rates = [
       0,
       0.06,
@@ -46,9 +32,39 @@ export default class Contract {
       0.01,
       0.01
     ];
-    const n = Object.keys(family.children).length;
-    const CAFrate = rates[n];
-    let rate = monthlyIncome * CAFrate / 100.;
+    const nChildren = Object.keys(this.family.children).length;
+    const CAF = rates[nChildren];
+    let rate = monthlyIncome * CAF / 100.;
+    rate = rate.toFixed(3);
+    return { CAF, rate };
+  }
+
+  getContents(name, address, contractPeriod, closedPeriods, child, childPeriods, rate) {
+    const f = this.family;
+    const monthlyIncome = Number(this.family.qf / 12).toFixed(2);
+    const nChildren = Object.keys(this.family.children).length;
+    const cStart = contractPeriod.start.format("L");
+    const cEnd = contractPeriod.end.format("L");
+    const familyName1 = f.parents[0].split(" ").pop();
+    const familyName2 = f.parents[1]
+      ? f.parents[1].split(" ").pop()
+      : "";
+    let familyName = "";
+    if (familyName2 === familyName1) {
+      familyName = familyName1;
+    } else if (familyName2) {
+      familyName = familyName1 + " / " + familyName2;
+    }
+    const birthDate = moment(new Date(child.birthdate)).format("L");
+    const periods = [];
+    let nHours = 0;
+    let nMonths = 0;
+    //let nHoursMonth = 0;
+    let nDays = 0;
+    if (rate === undefined) { rate = this.calcRate();
+    } else {
+      if (rate.CAF) { rate = this.calcRate(); };
+    };
     let monthlyAmount = 0;
 
     childPeriods = childPeriods.sort((pa, pb) => {
@@ -105,9 +121,8 @@ export default class Contract {
     const r = moment.range(contractPeriod.start, contractPeriod.end);
     r.by("months", m => { nMonths += 1 });
 
-    monthlyAmount = rate * (nHours / nMonths);
+    monthlyAmount = rate.rate * (nHours / nMonths);
     monthlyAmount = monthlyAmount.toFixed(2);
-    rate = rate.toFixed(3);
 
     return [
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
@@ -177,7 +192,7 @@ export default class Contract {
           { text: "N\xB0 allocataire:", width: "20%" },
           { text: `${f.id}`, width: "20%" },
           {
-            text: `QF: ${family.qf}, revenu mensuel: ${monthlyIncome} euros`,
+            text: `QF: ${f.qf}, revenu mensuel: ${monthlyIncome} euros`,
             width: "60%"
           }
         ]
@@ -211,7 +226,7 @@ export default class Contract {
         columns: [
           { text: "Taux horaire:", width: "20%" },
           {
-            text: `${rate}, en application du taux CAF ${CAFrate} (${n} ${n > 1 ? "enfants" : "enfant"} dans la famille)`,
+            text: `${rate.rate}${rate.CAF > 0 ? `, en application du taux CAF ${rate.CAF} (${nChildren} ${nChildren > 1 ? "enfants" : "enfant"} dans la famille)` : ""}`,
             width: "80%"
           }
         ]

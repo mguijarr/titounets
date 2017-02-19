@@ -95,6 +95,12 @@ def extract_family_data(db, username):
     family['parents'] = [family.pop('parent1'), family.pop('parent2')]
     if not 'till' in family:
       family['till'] = 'Grenoble'
+    if not 'rate' in family:
+      family['rate'] = None
+    if not 'CAFrate' in family:
+      family['CAFrate'] = True
+    else:
+      family["CAFrate"] = bool(family["CAFrate"] == "True")
     return family
 
 def extract_families(db):
@@ -163,12 +169,14 @@ def get_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
     if session['admin'] or int(session["username"]) == username:
         family = extract_family_data(db, username)
-        res = dict()
+        res = { "rate": { "CAF": family["CAFrate"], "rate": family["rate"] } }
+        periods = {}
+        res["periods"] = periods
         for child_name, c in family['children'].iteritems():
            if not bool(int(c.get("present", "1"))):
              continue
            key = "%d:children:%s:periods" % (username, child_name.replace(" ", "_")) 
-           res[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
+           periods[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
 
         return jsonify(res)
     else:
@@ -178,18 +186,23 @@ def get_children_periods(username):
 def set_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
     if session['admin'] or int(session["username"]) == username:
-        periods = request.get_json()
+        r = request.get_json()
+        key = "%d" % username
+        periods = r['periods']
+        rate = r['rate']
         family_data = extract_family_data(db, username)
-        for child_name in periods:
-           key = "%d:children:%s:periods" % (username, child_name.replace(" ", "_"))
-           plist = map(json.dumps, periods[child_name])
-           with db.pipeline() as P:
-               P.delete(key)
-               if plist:
-                   P.rpush(key, *plist)
-               P.execute()
+        with db.pipeline() as P:
+          P.hset(key, "rate", rate["rate"])
+          P.hset(key, "CAFrate", rate["CAF"])
+          for child_name in periods:
+            pkey = key+":children:%s:periods" % (child_name.replace(" ", "_"))
+            plist = map(json.dumps, periods[child_name])
+            P.delete(pkey)
+            if plist:
+               P.rpush(pkey, *plist)
+          P.execute()
 
-        return make_response("", 200) 
+        return make_response("", 200)
     else:
         return make_response("", 401)
    
