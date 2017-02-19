@@ -49,6 +49,7 @@ class GestionFamilles extends React.Component {
       cafTills: [],
       showAddFamily: false,
       showDelFamily: false,
+      showAddChild: false,
       addressFields: {},
       enableSave: false,
       formValues: {}
@@ -67,6 +68,7 @@ class GestionFamilles extends React.Component {
     this.extractFormValues = this.extractFormValues.bind(this);
     this.addressChanged = this.addressChanged.bind(this);
     this.childChanged = this.childChanged.bind(this);
+    this.addChild = this.addChild.bind(this);
   }
 
   componentDidMount() {
@@ -222,12 +224,14 @@ class GestionFamilles extends React.Component {
       phone_number: data.phone_number,
       email: data.email
     };
+
     const formValues = {
       parent1: data.parents[0],
       parent2: data.parents[1],
       qf: data.qf,
       id: data.id
     };
+
     return { addressFields, formValues };
   }
 
@@ -246,8 +250,24 @@ class GestionFamilles extends React.Component {
 
   childChanged(childName, key, value) {
     const family = this.state.selectedFamily;
-    family.children[childName][key] = value;
+
+    if (key === "deleted") {
+      delete family.children[childName];
+    } else {
+      family.children[childName][key] = value;
+    }
+
     this.setState({ enableSave: true, selectedFamily: family });
+  }
+
+  addChild() {
+    const name = ReactDOM.findDOMNode(this.refs.newChildName).value;
+    const family = this.state.selectedFamily;
+    const surname = getFamilyName(family);
+ 
+    family.children[name] = { present: "1", surname, name };
+
+    this.setState({ selectedFamily: family, showAddChild: false });
   }
 
   saveData() {
@@ -402,7 +422,6 @@ class GestionFamilles extends React.Component {
             <Row>
                 {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
                   const c = family.children[childName];
-                  if (c.deleted) { return "" }
                   if (c.present === undefined) { c.present = "1" };
                   return (
                     <ChildData
@@ -417,7 +436,7 @@ class GestionFamilles extends React.Component {
             </Row>
             <Row>
               <div className="pull-right" style={{marginTop: '15px'}}>
-                  <Button bsStyle="primary"><Glyphicon glyph="plus"/> Ajouter enfant</Button>
+                  <Button bsStyle="primary" onClick={()=>{this.setState({ showAddChild: true })}}><Glyphicon glyph="plus"/> Ajouter enfant</Button>
               </div>
             </Row>
           </Col>
@@ -516,6 +535,25 @@ class GestionFamilles extends React.Component {
           <Modal.Footer>
             <Button bsStyle="danger" onClick={this.delFamily}>Supprimer</Button>
             <Button onClick={() => { this.setState({ showDelFamily: false }) }}>Annuler</Button>
+          </Modal.Footer>
+        </Modal>
+        <Modal show={this.state.showAddChild} onHide={() => { this.setState({ showAddChild: false }) }}>
+          <Modal.Header closeButton>
+            <Modal.Title>Ajouter un enfant</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form horizontal>
+              <FormGroup>
+                <Col sm={4} componentClass={ControlLabel}>Prénom de l'enfant:</Col>
+                <Col sm={4}>
+                  <FormControl ref="newChildName" type="text"/>
+                </Col>
+              </FormGroup>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button bsStyle="primary" onClick={this.addChild}>Ajouter enfant</Button>
+            <Button onClick={() => { this.setState({ showAddChild: false }) }}>Annuler</Button>
           </Modal.Footer>
         </Modal>
       </Grid>

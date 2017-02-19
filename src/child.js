@@ -14,7 +14,8 @@ import {
   Label,
   Glyphicon,
   Panel,
-  PanelGroup
+  PanelGroup,
+  Modal
 } from "react-bootstrap";
 import DatePicker from "react-bootstrap-date-picker";
 import { TextInput } from "./utils";
@@ -24,8 +25,11 @@ export default class ChildData extends React.Component {
   constructor(props) {
     super(props);
 
+    this.state = { showDelChild: false };
+
     this.dataChanged = this.dataChanged.bind(this);
     this.presentClicked = this.presentClicked.bind(this);
+    this.delChild = this.delChild.bind(this);
   }
 
   dataChanged(key, value) {
@@ -34,6 +38,11 @@ export default class ChildData extends React.Component {
 
   presentClicked(e) {
     this.props.onChange("present", e.target.checked ? "1" : "0");
+  }
+
+  delChild() {
+    this.props.onChange("deleted", "1");
+    this.setState({ showDelChild: false });
   }
 
   render() {
@@ -60,7 +69,7 @@ export default class ChildData extends React.Component {
           </Col>
           <Col sm={2}>
             {auth.admin() ? <div className="pull-right">
-              <Button><Glyphicon glyph="remove"/></Button>
+              <Button onClick={()=>{this.setState({showDelChild: true})}}><Glyphicon glyph="remove"/></Button>
             </div> : "" }
           </Col>
         </FormGroup>
@@ -100,6 +109,18 @@ export default class ChildData extends React.Component {
             </Col>
          </div> : "" }
         </FormGroup>
+        <Modal show={this.state.showDelChild} onHide={() => { this.setState({ showDelChild: false }) }}>
+          <Modal.Header closeButton>
+            <Modal.Title>Confirmation</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            Etes-vous sûr de supprimer l'enfant ${this.props.data.name} ?
+          </Modal.Body>
+          <Modal.Footer>
+            <Button bsStyle="danger" onClick={this.delChild}>Supprimer</Button>
+            <Button onClick={() => { this.setState({ showDelChild: false }) }}>Annuler</Button>
+          </Modal.Footer>
+        </Modal>
       </Form>
     );
   }
