@@ -276,6 +276,8 @@ def save():
     else:
         passwd_hash = None
 
+    saved_children = []
+
     with db.pipeline() as p:
         p.hset(username, "admin", False)
         if passwd_hash is not None:
@@ -293,11 +295,19 @@ def save():
         p.hset(username, "till", till)
         for child_name, child_data in children.iteritems():
           key = "%s:children:%s" % (username, child_data["name"].replace(" ", "_")) 
+          saved_children.append(child_name)
           p.hset(key, "name", child_data["name"])
           p.hset(key, "surname", child_data["surname"])
           p.hset(key, "birthdate", child_data["birthdate"])
           p.hset(key, "present", child_data.get("present", "1"))
         p.execute()
+
+    for k in db.scan_iter(match=username+":children:*"):
+       _, _, child_name = k.split(":")
+       child_name = child_name.replace("_", " ")
+       if not child_name in saved_children:
+         db.delete(k)
+         db.delete(k+":periods")
 
     return make_response("", 200)
 
