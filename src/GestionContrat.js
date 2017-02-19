@@ -17,7 +17,10 @@ import {
   Modal,
   DropdownButton,
   MenuItem,
-  Table
+  Table,
+  FormGroup,
+  InputGroup,
+  FormControl
 } from "react-bootstrap";
 import "./css/GestionContrat.css!";
 import "./css/calendar.css!";
@@ -60,7 +63,8 @@ export default class GestionContrat extends React.Component {
       closedPeriods: [],
       address: {},
       saveEnabled: false,
-      family: null
+      family: null,
+      rate: { CAF: true, rate: 0 }
     };
 
     this.onPickRange = this.onPickRange.bind(this);
@@ -75,6 +79,9 @@ export default class GestionContrat extends React.Component {
     this.contractYearPeriods = this.contractYearPeriods.bind(this);
     this.timeTableChanged = this.timeTableChanged.bind(this);
     this.findDays = this.findDays.bind(this);
+    this.rateChanged = this.rateChanged.bind(this);
+    this.doCalcRate = this.doCalcRate.bind(this);
+    this.CAFRateChanged = this.CAFRateChanged.bind(this);
   }
 
   findDays(period) {
@@ -89,8 +96,7 @@ export default class GestionContrat extends React.Component {
     return days; 
   }
 
-  getPeriods(familyId) {
-    //this.setState({ busy: true });
+  getPeriods(familyId, hideBusy) {
     return fetch("/api/periods/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -99,19 +105,22 @@ export default class GestionContrat extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        for (const childName of Object.keys(res)) {
-            res[childName].forEach(p => {
+        const rate = res.rate;
+        const periods = res.periods;
+        for (const childName of Object.keys(periods)) {
+            periods[childName].forEach(p => {
               p.range = moment.range(p.range.start, p.range.end);
             });
         }
         // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
-        this.setState({ periods: res, busy: false });
+        this.setState({ periods, rate: { CAF: rate.CAF, rate: rate.CAF ? this.doCalcRate() : rate.rate }});
+        if (hideBusy) { this.setState({ busy: false }) };
       });
   }
 
   componentWillReceiveProps(nextProps) {
     this.setState({ busy: true });
-    this.getPeriods(nextProps.family.id);
+    this.getPeriods(nextProps.family.id, true);
   }
 
   componentWillMount() {
@@ -144,7 +153,7 @@ export default class GestionContrat extends React.Component {
           }),
           enabled: res.contractChangesAllowed === "1",
           address: res.address,
-          name: res.name
+          name: res.name,
         });
       }),
 
@@ -160,7 +169,7 @@ export default class GestionContrat extends React.Component {
       }),
       this.getPeriods(this.props.family.id)]
 
-    Promise.all(promises).then(() => { this.setState({busy: false })});
+    Promise.all(promises).then(() => { this.setState({ busy: false })});
   }
 
   addPeriod() {
@@ -238,7 +247,7 @@ export default class GestionContrat extends React.Component {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(this.state.periods)
+      body: JSON.stringify({ periods: this.state.periods, rate: this.state.rate })
     });
     this.setState({ saveEnabled: false });
   }
@@ -315,26 +324,45 @@ export default class GestionContrat extends React.Component {
     });
   }
 
+  rateChanged(event) {
+    this.setState({ rate: { CAF: false, rate: event.target.value }, saveEnabled: true });
+  }
+
+  doCalcRate() {
+    const c = new Contract(this.props.family);
+    const r = c.calcRate();
+    return r.rate;
+  } 
+
+  CAFRateChanged(e) {
+    if (e.target.checked) {
+      this.setState({ rate: { CAF: true, rate: this.doCalcRate() }, saveEnabled: true });
+    } else {
+      this.setState({ rate: { CAF: false } });
+    }
+  }
+
   editContract() {
-    let c = new Contract();
+    let c = new Contract(this.props.family);
     let f = this.props.family;
     let content = [];
 
     Object.keys(f.children).forEach(childName => {
       const child = f.children[childName];
-      const periods = this.contractYearPeriods(child.name);
-      if (periods.length > 0) {
-        content.push(
-          ...c.getContents(
+      if (child.present === '1') {
+        const periods = this.contractYearPeriods(child.name);
+        if (periods.length > 0) {
+          content.push(
+            ...c.getContents(
             this.state.name,
             this.state.address,
             this.state.contractRange,
             this.state.closedPeriods,
-            f,
             child,
-            periods
-          )
-        );
+            periods,
+            this.state.rate)
+          );
+        }
       }
     });
   
@@ -365,7 +393,7 @@ export default class GestionContrat extends React.Component {
     }
     this.setState({ editedTimeTable });
   }
-
+ 
   render() {
     this.childCheckbox = {};
 
@@ -473,21 +501,33 @@ export default class GestionContrat extends React.Component {
         <Row>
           <Col lg={12}>
             <div className="pull-right" style={{marginTop: "15px", marginBottom:"15px"}}>
-              <Button
-                bsStyle="primary"
-                disabled={(this.props.family.id < 0) || (! this.state.saveEnabled)}
-                onClick={() => {
-                    this.savePeriods(this.props.family.id);
+              <div className="form-inline">
+                <label>Taux horaire</label>{'    '}
+                <FormControl
+                  readOnly={!auth.admin()}
+                  type="text"
+                  value={this.state.rate.rate}
+                  onChange={this.rateChanged}
+                />
+                {'    '}
+                { auth.admin() ? <Checkbox checked={this.state.rate.CAF} onChange={this.CAFRateChanged}>Taux CAF</Checkbox> : "" }
+                { auth.admin() ? '    ' : "" }
+                <Button
+                  bsStyle="primary"
+                  disabled={(this.props.family.id < 0) || (! this.state.saveEnabled)}
+                  onClick={() => {
+                      this.savePeriods(this.props.family.id);
                   }}
-              >Enregistrer contrat</Button>
-              {auth.admin() ? "    " : ""}
-              {auth.admin() ? <Button
+                >Enregistrer contrat</Button>
+                {auth.admin() ? "    " : ""}
+                {auth.admin() ? <Button
                     bsStyle="primary"
                     disabled={this.props.family.id < 0}
                     onClick={() => {
                         this.editContract(this.props.family.id);
                       }}
                   >Editer contrat</Button> : ""}
+              </div>
             </div>
           </Col>
         </Row>

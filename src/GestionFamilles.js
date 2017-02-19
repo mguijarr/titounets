@@ -23,6 +23,7 @@ import {
   Modal
 } from "react-bootstrap";
 import auth from "./auth";
+import Contract from "./contrat";
 import {
   checkStatus,
   parseJSON,
@@ -127,6 +128,11 @@ class GestionFamilles extends React.Component {
   familySelected(id) {
     for (const f of this.state.families) {
       if (f.id === id) {
+        if (f.rate === null) {
+          const c = new Contract(f);
+          const r = c.calcRate();
+          f.rate = r.rate;
+        }
         this.setState({ selectedFamily: f, ...this.extractFormValues(f) });
         break;
       }
@@ -346,7 +352,7 @@ class GestionFamilles extends React.Component {
                   <Col lg={2} componentClass={ControlLabel}>
                     N° d'allocataire
                   </Col>
-                  <Col lg={4}>
+                  <Col lg={2}>
                     <TextInput
                       readOnly={!auth.admin()}
                       valueObject={this.state.formValues}
@@ -354,7 +360,7 @@ class GestionFamilles extends React.Component {
                       onChange={this.formValueChanged}
                     />
                   </Col>
-                  <Col lg={2} componentClass={ControlLabel}>QF</Col>
+                  <Col lg={1} componentClass={ControlLabel}>QF</Col>
                   <Col lg={2}>
                     <TextInput
                       readOnly={!auth.admin()}
