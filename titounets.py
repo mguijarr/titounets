@@ -107,7 +107,7 @@ def extract_families(db):
     families = []
 
     for k in db.scan_iter(): #keys('*'):
-      if k == 'admin' or k.startswith('session:') or k.startswith("parameters"):
+      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.endswith("hours"):
         continue
       if not ':children:' in k:
         families.append(extract_family_data(db, k))
@@ -150,21 +150,46 @@ def get_children(date):
         end = end.replace(tzinfo=pytz.utc).astimezone(local_tz).replace(tzinfo=None)
         if start.date() <= day <= end.date():
           timetable = periods[period_index]["timetable"]
-          hours = timetable[str(day.weekday()+1)]
-          if hours:
-            contract_start_time = hours[0]
-            contract_end_time = hours[1]
-          result.append((child['surname'], child['name'], username, contract_start_time, contract_end_time))
-
+          contract_hours = timetable.get(str(day.weekday()+1))
+          if contract_hours:
+            contract_start_time = contract_hours[0]
+            contract_end_time = contract_hours[1]
+            result.append((child['surname'], child['name'], username, contract_start_time, contract_end_time))
+            break
+      else:
+          result.append((child['surname'], child['name'], username, None, None))
     result.sort()
 
     children = []
-    for child in result:
-      children.append({ "surname": child[0], "name": child[1], "id": child[2], "contractStart":child[3], "contractEnd": child[4], "hours":{} })
+    for surname, name, username, contract_start, contract_end in result:
+      try:
+        hours = ast.literal_eval(db.hget("%s:%s:hours" % (username, name), day.isoformat()))
+      except ValueError:
+        hours = None
+      children.append({ "surname": surname, "name": name, "id": username, "contractStart": contract_start, "contractEnd": contract_end, "hours": hours })
     
     return jsonify(children)   
 
-@app.route("/api/periods/<int:username>", methods=["GET"])
+@app.route("/api/childHours", methods=["POST"])
+def set_child_hours():
+    if not session['admin']:
+      return make_response("", 401)
+
+    db, _ = get_db_et(session["etablissement"])
+
+    data = request.get_json()
+
+    date = data["date"]
+    day = dateutil.parser.parse(date).date()
+    hours = data["hours"] 
+    name = data["name"].replace(" ", "_")
+    
+    db.hset("%s:%s:hours" % (data["id"], name), day.isoformat(), str(hours))
+
+    return make_response("", 200)
+
+
+@app.route("/api/periods/<username>", methods=["GET"])
 def get_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
     if session['admin'] or int(session["username"]) == username:
@@ -175,19 +200,19 @@ def get_children_periods(username):
         for child_name, c in family['children'].iteritems():
            if not bool(int(c.get("present", "1"))):
              continue
-           key = "%d:children:%s:periods" % (username, child_name.replace(" ", "_")) 
+           key = "%s:children:%s:periods" % (username, child_name.replace(" ", "_")) 
            periods[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
 
         return jsonify(res)
     else:
         return make_response("", 401)
 
-@app.route("/api/periods/<int:username>", methods=["POST"])
+@app.route("/api/periods/<username>", methods=["POST"])
 def set_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
     if session['admin'] or int(session["username"]) == username:
         r = request.get_json()
-        key = "%d" % username
+        key = "%s" % username
         periods = r['periods']
         rate = r['rate']
         family_data = extract_family_data(db, username)
@@ -216,9 +241,8 @@ def del_family():
     username = content["username"]
 
     with db.pipeline() as p:
-      p.delete(username)
-      for c in db.scan_iter(match=username+":children:*"):
-        p.delete(c)
+      for x in db.scan_iter(match=username+"*"):
+        p.delete(x)
       p.execute()
 
     return jsonify(extract_families(db))
@@ -232,16 +256,17 @@ def del_child():
     content = request.get_json()
     username = int(content["username"])
     child_name = content["child_name"].replace(" ", "_")
-    key = "%d:children:%s" % (username, child_name)   
+    key = "%s:children:%s" % (username, child_name)   
  
     with db.pipeline() as p:
         p.delete(key)
         p.delete(key+":periods")
+        p.delete("%s:%s:hours" % (username, child_name))
         p.execute()
 
     return jsonify(extract_family_data(db, username))
 
-@app.route("/api/family/<int:username>", methods=["GET"])
+@app.route("/api/family/<username>", methods=["GET"])
 def get_family(username):
     db, _ = get_db_et(session["etablissement"])
     if session['admin'] or int(session["username"]) == username:

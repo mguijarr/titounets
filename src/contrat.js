@@ -205,13 +205,17 @@ export default class Contract {
       " ",
       "aux heures et jours suivants:",
       " ",
+      { columns: [ { width: '*', text: '' },
       {
-        table: {
-          style: "lightHorizontalLines",
-          body: [ [ "Du", "Au", "Jours", "de", "\xE0" ], ...periods ]
-        }
+        width: 'auto',
+          table: {
+            headerRows: 1,
+            style: "lightHorizontalLines",
+            body: [ [ "Du", "Au", "Jours", "de", "\xE0" ], ...periods ]
+          }
+      },{ width: '*', text: '' } ]
       },
-      { text: " ", pageBreak: periods.length > 13 ? "after" : null },
+      " ",
       {
         columns: [
           { text: "Nb d'heures:", width: "20%" },
@@ -236,8 +240,7 @@ export default class Contract {
       " ",
       {
         text: `Fait à ${address.city} le ${this.today}. Signature des parents ou du représentant légal:`,
-        style: "centered",
-        pageBreak: "after"
+        style: "centered"
       }
     ];
   }

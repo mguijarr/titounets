@@ -350,6 +350,7 @@ export default class GestionContrat extends React.Component {
     Object.keys(f.children).forEach(childName => {
       const child = f.children[childName];
       if (child.present === '1') {
+        if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
         const periods = this.contractYearPeriods(child.name);
         if (periods.length > 0) {
           content.push(
@@ -371,9 +372,13 @@ export default class GestionContrat extends React.Component {
       styles: {
         title: { fontSize: 16, bold: true, alignment: "center" },
         centered: { alignment: "center" },
-        bigTitle: { fontSize: 20, bold: true, alignment: "center" }
+        bigTitle: { fontSize: 20, bold: true, alignment: "center" },
+        marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
       },
-      defaultStyle: { fontSize: 10 }
+      defaultStyle: { fontSize: 10 },
+      pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
+        return currentNode.startPosition.top >= 750;
+      }
     };
 
     // open the PDF in a new window
