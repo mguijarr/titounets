@@ -18,7 +18,9 @@ import {
   Panel,
   PanelGroup,
   Modal,
-  Checkbox
+  Checkbox,
+  DropdownButton,
+  MenuItem
 } from "react-bootstrap";
 import ChildData from "./child.js";
 import auth from "./auth";
@@ -34,7 +36,7 @@ export default class Heures extends React.Component {
       children: [],
       openingHours: [ 8, 19 ],
       date: new Date().toISOString(),
-      currentRange: []
+      showAll: false
     };
 
     this.formatHour = this.formatHour.bind(this);
@@ -42,12 +44,16 @@ export default class Heures extends React.Component {
     this.getChildrenList = this.getChildrenList.bind(this);
     this.setHours = this.setHours.bind(this);
     this.hoursChanged = this.hoursChanged.bind(this);
+    this.toggleDisplay = this.toggleDisplay.bind(this);
   }
 
-  getChildrenList(date) {
-    this.setState({ busy: true });
+  toggleDisplay() {
+    this.setState({ showAll: !this.state.showAll });
+  }
+
+  getChildrenList(date, keepBusy) {
     // get children list
-    fetch("/api/children/" + date, {
+    return fetch("/api/children/" + date, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -55,25 +61,33 @@ export default class Heures extends React.Component {
       .then(checkStatus)
       .then(parseJSON)
       .then(res => {
-        this.setState({ children: res, busy: false });
+        this.setState({ children: res.map((c)=>{
+           c.disabled = c.hours !== null;
+           return c
+        }), busy: !!keepBusy });
       });
   }
 
   componentWillMount() {
-    this.getChildrenList(this.state.date);
-
     this.setState({ busy: true });
-    // get opening hours
-    fetch("/api/parameters", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-      .then(checkStatus)
-      .then(parseJSON)
-      .then(res => {
-        this.setState({ openingHours: [res.opening, res.closing], busy: false });
-      });
+   
+    const promises = [
+      this.getChildrenList(this.state.date),
+    
+      // get opening hours
+      fetch("/api/parameters", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include"
+      })
+        .then(checkStatus)
+        .then(parseJSON)
+        .then(res => {
+          this.setState({ openingHours: [res.opening, res.closing] });
+        })
+    ]
+
+    Promise.all(promises).then(() => { this.setState({ busy: false })});
   }
 
   formatHour(m) {
@@ -89,17 +103,30 @@ export default class Heures extends React.Component {
 
   dateChanged(isodate) {
     this.setState({ date: isodate, busy: true });
-    this.getChildrenList(isodate);
+    this.getChildrenList(isodate, false);
   }
 
   setHours(childIndex) {
-    //
+    const children = this.state.children;
+    const c = children[childIndex];
+    fetch("/api/childHours", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ "id": c.id, "name": c.name, "date": this.state.date, "hours": c.hours })
+    })
+      .then(checkStatus)
+      .then(res => {
+        children[childIndex].disabled = true;
+        this.setState({ children });
+      })
   }
 
   hoursChanged(childIndex, range) {
     const children = this.state.children;
     const c = children[childIndex];
-    c.hours[this.state.date] = [range[0]/60, range[1]/60];
+    c.hours = [range[0]/60, range[1]/60];
+    this.setState({ children });
   }
 
   render() {
@@ -113,7 +140,7 @@ export default class Heures extends React.Component {
     return (
       <Grid>
         <Row>
-          <Col lg={8} lgOffset={2}>
+          <Col lg={5} lgOffset={2}>
             <DatePicker
               monthLabels={
                 [
@@ -138,14 +165,19 @@ export default class Heures extends React.Component {
               onChange={this.dateChanged}
             />
           </Col>
+          <Col lg={2} lgOffset={1}>
+            <DropdownButton key="1" title={this.state.showAll ? "Afficher tous" : "Afficher selon contrat"}>
+              <MenuItem eventKey="1" onClick={this.toggleDisplay}>{this.state.showAll ? "Afficher selon contrat" : "Afficher tous"}</MenuItem>
+            </DropdownButton>
+          </Col>
         </Row>
         <Row>
           <Col lg={12}>
             {this.state.children.map((c, i) => {
-                const cHours = c.hours[this.state.date];
-                const hoursRange = cHours === undefined ? [this.state.openingHour, this.state.openingHour] : cHours;
-                hoursRange[0] = hoursRange[0] * 60;
-                hoursRange[1] = hoursRange[1] * 60;
+                if ((c.contractStart === null) && (! this.state.showAll)) { return "" };
+                const start = c.contractStart !== null ? c.contractStart*60 : openingHour;
+                const end = c.contractEnd !== null ? c.contractEnd*60 : closingHour;
+                const hoursRange = c.hours === null ? [start, end] : [c.hours[0]*60, c.hours[1]*60];
                
                 return (
                   <Row>
@@ -159,14 +191,15 @@ export default class Heures extends React.Component {
                           min={openingHour}
                           max={closingHour}
                           formatter={this.formatHour}
+                          disabled={this.state.children[i].disabled ? "disabled" : ""}
                           slideStop={(event)=>{ return this.hoursChanged(i, event.target.value)}}
                           rangeHighlights={
                             [
                               {
                                 start: openingHour,
-                                end: c.contractStart * 60
+                                end: start
                               },
-                              { start: c.contractEnd * 60, end: closingHour }
+                              { start: end, end: closingHour }
                             ]
                           }
                         />
@@ -174,11 +207,11 @@ export default class Heures extends React.Component {
                     </Col>
                     <Col lg={2}>
                       <div style={{ marginTop: "10px" }}>
-                        <Button bsStyle="success" onClick={()=>{ this.setHours(i) }}>
+                        <Button bsStyle="success" disabled={this.state.children[i].disabled} onClick={()=>{ this.setHours(i) }}>
                           <Glyphicon glyph="ok" />
                         </Button>
-                        <Button bsStyle="danger" onClick={()=>{this.enableChange(i)}}>
-                          <Glyphicon glyph="remove" />
+                        <Button disabled={!this.state.children[i].disabled} onClick={()=>{const children=this.state.children; children[i].disabled=false; this.setState({children})}}>
+                          Editer
                         </Button>
                       </div>
                     </Col>
