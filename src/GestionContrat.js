@@ -382,9 +382,9 @@ export default class GestionContrat extends React.Component {
     };
 
     // open the PDF in a new window
-    pdfMake.createPdf(docDefinition).open();
+    //pdfMake.createPdf(docDefinition).open();
     // download the PDF
-    //pdfMake.createPdf(docDefinition).download();
+    pdfMake.createPdf(docDefinition).download();
   }
 
   timeTableChanged(timetable, childName) {

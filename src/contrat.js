@@ -54,6 +54,8 @@ export default class Contract {
       familyName = familyName1;
     } else if (familyName2) {
       familyName = familyName1 + " / " + familyName2;
+    } else {
+      familyName = familyName1;
     }
     const birthDate = moment(new Date(child.birthdate)).format("L");
     const periods = [];
@@ -192,7 +194,7 @@ export default class Contract {
           { text: "N\xB0 allocataire:", width: "20%" },
           { text: `${f.id}`, width: "20%" },
           {
-            text: `QF: ${f.qf}, revenu mensuel: ${monthlyIncome} euros`,
+            text: `Revenus annuels: ${f.qf}, revenu mensuel: ${monthlyIncome} euros`,
             width: "60%"
           }
         ]

@@ -87,6 +87,10 @@ def extract_family_data(db, username):
             continue
         child_name = k.split(":")[-1].replace(" ", "_")
         family["children"][child_name] = db.hgetall(k)
+        if bool(int(family["children"][child_name].get("present", "1"))):
+          family["children"][child_name]["present"] = "1"
+        else:
+          family["children"][child_name]["present"] = "0"
 
     family.pop("password")
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
@@ -398,6 +402,19 @@ def allow_contract_changes():
 def get_calendar():
   db, _ = get_db_et(session["etablissement"])
 
+@app.route("/api/bills/<username>", methods=["GET"])
+def get_bills(username):
+    if not session["admin"]:
+        return make_response("", 401)
+
+    return jsonify({});
+
+@app.route("/api/bills/<username>", methods=["POST"])
+def save_bills(username):
+    if not session["admin"]:
+        return make_response("", 401)
+
+    return jsonify({});
 
 if __name__ == '__main__':
   app.run(host="0.0.0.0", port=5000)

@@ -99,6 +99,7 @@ export default class ChildData extends React.Component {
               }
               dayLabels={[ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]}
               dateFormat="DD/MM/YYYY"
+              showClearButton={false}
               value={this.props.data.birthdate}
             />
           </Col>
@@ -114,7 +115,7 @@ export default class ChildData extends React.Component {
             <Modal.Title>Confirmation</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            Etes-vous sûr de supprimer l'enfant ${this.props.data.name} ?
+            Etes-vous sûr de supprimer l'enfant {this.props.data.name} ?
           </Modal.Body>
           <Modal.Footer>
             <Button bsStyle="danger" onClick={this.delChild}>Supprimer</Button>

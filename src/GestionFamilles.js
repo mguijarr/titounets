@@ -35,6 +35,7 @@ import {
 } from "./utils";
 import ChildData from "./child.js";
 import GestionContrat from "./GestionContrat.js";
+import Factures from './Factures.js';
 
 class GestionFamilles extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -265,7 +266,7 @@ class GestionFamilles extends React.Component {
     const family = this.state.selectedFamily;
     const surname = getFamilyName(family);
  
-    family.children[name] = { present: "1", surname, name };
+    family.children[name] = { present: "1", surname, name, birthdate: new Date().toISOString() };
 
     this.setState({ selectedFamily: family, showAddChild: false });
   }
@@ -364,7 +365,7 @@ class GestionFamilles extends React.Component {
               </div>
             </Row>
             <Row>
-            <h3>Famille</h3>
+            <h3><Label>Famille</Label></h3>
             </Row>
             <Row>
               <Form horizontal>
@@ -380,7 +381,7 @@ class GestionFamilles extends React.Component {
                       onChange={this.formValueChanged}
                     />
                   </Col>
-                  <Col lg={1} componentClass={ControlLabel}>QF</Col>
+                  <Col lg={2} componentClass={ControlLabel}>Revenus annuels</Col>
                   <Col lg={2}>
                     <TextInput
                       readOnly={!auth.admin()}
@@ -418,7 +419,7 @@ class GestionFamilles extends React.Component {
             />
             <Row>
             </Row>
-            <h3>Enfants</h3>
+            <h3><Label>Enfants</Label></h3>
             <Row>
                 {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
                   const c = family.children[childName];
@@ -450,12 +451,9 @@ class GestionFamilles extends React.Component {
       );
     } else {
       contents = (
-        <div
-          style={
-            { marginTop: "15px", position: "relative", textAlign: "center" }
-          }
-        >
-        </div>
+        <Col lg={12}>
+          <Factures family={family}/>
+        </Col>
       );
     }
 
