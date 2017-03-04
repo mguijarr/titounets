@@ -28,11 +28,11 @@ import {
   isHoliday,
   checkStatus,
   parseJSON,
-  findDays,
-  getFamilyName
+  findDays
 } from "./utils";
 import "pdfmake";
 import "pdfmake-fonts";
+import Contract from "./contrat";
 
 export default class Factures extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -42,12 +42,11 @@ export default class Factures extends React.Component {
     let today = moment();
     let last_year = today.add(-1, "years");
     this.state = {
-      busy: false,
-      openingTime: 0,
-      closingTime: 0,
+      busy: true,
       contractRange: moment.range(last_year, last_year),
       currentMonth: 0, 
       bills: {},
+      parameters: {},
       changed: false
     };
 
@@ -57,71 +56,67 @@ export default class Factures extends React.Component {
     this.hoursChanged = this.hoursChanged.bind(this);
     this.desChanged = this.descChanged.bind(this);
     this.save = this.save.bind(this);
-    this.monthToKey = this.monthToKey.bind(this);
+    this.getData = this.getData.bind(this);
+    this.editBill = this.editBill.bind(this);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.props.family.id !== nextProps.family.id) {
+      this.getData(nextProps.family.id);
+    }
   }
 
   componentWillMount() {
+    this.getData(this.props.family.id);
+  }
+
+  getData(familyId) {
     this.setState({ busy: true });
 
-    const promises = [
-    fetch("/api/parameters", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-      .then(checkStatus)
-      .then(parseJSON)
-      .then(res => {
-        const contractStart = moment(new Date(res.contractStart));
-        const contractEnd = moment(new Date(res.contractEnd));
-
-        this.setState({
-          contractRange: moment.range(contractStart, contractEnd),
-          openingTime: res.opening,
-          closingTime: res.closing,
-        });
-      }),
-
-    fetch("/api/bills/" + this.props.family.id, {
+    fetch("/api/bills/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
     }).then(checkStatus).then(parseJSON).then(res => {
-      this.setState({ bills: res }); 
-    })
-    ]
-
-    Promise.all(promises).then(() => { this.setState({ busy: false })});
+      const parameters = res.parameters;
+      const contractStart = moment(new Date(parameters.contractStart));
+      const contractEnd = moment(new Date(parameters.contractEnd));
+      const contractRange = moment.range(contractStart, contractEnd);
+      const year = contractStart.year();
+      parameters.closedPeriods = res.parameters.closedPeriods.map(p => {
+        return moment.range(p);
+      });
+      const bills = res.bills[year] || {};
+      res.bills[year] = bills;
+      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractRange, busy: false }); 
+    });
   }
 
   save() {
-    debugger;
     fetch("/api/bills/" + this.props.family.id, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify(this.state.bills)
-    }).then(checkStatus);
+    }).then(checkStatus).then(() => { this.setState({ changed: false }) });
   }
 
-  monthToKey(m) {
-    return m.format('MMMM')+m.year();
-  }
-
-  addLine(month) {
+  addLine(month, childName) {
     const bills = this.state.bills;
-    const m = this.monthToKey(month);
-    bills[m].push({ hours: "", desc: "" });
+    bills[month.year()][month.format('MMMM')][childName].push({ hours: "", desc: "" });
     this.setState({ bills });
   }
 
-  removeLine(month, i) {
+  removeLine(month, childName, i) {
     const bills = this.state.bills;
-    const m = this.monthToKey(month);
-    const bill = bills[m];
+    const bill = bills[month.year()][month.format("MMMM")][childName];
     if (bill.length > 1) {
       bill.splice(i, 1);
       this.setState({ bills, changed: true }); 
+    } else {
+      bill[i].hours = "";
+      bill[i].desc = "";
+      this.setState({ bills, changed: true });
     }
   }
 
@@ -129,18 +124,71 @@ export default class Factures extends React.Component {
     this.setState({ currentMonth: i });
   }
 
-  hoursChanged(month, i, hours) {
+  hoursChanged(month, childName, i, hours) {
     const bills = this.state.bills;
-    const m = this.monthToKey(month);
-    bills[m][i].hours = hours;
+    bills[month.year()][month.format("MMMM")][childName][i].hours = hours;
     this.setState({ bills, changed: true });
   }
 
-  descChanged(month, i, desc) {
+  descChanged(month, childName, i, desc) {
     const bills = this.state.bills;
-    const m = this.monthToKey(month);
-    bills[m][i].desc = desc;
+    bills[month.year()][month.format("MMMM")][childName][i].desc = desc;
     this.setState({ bills, changed: true });
+  }
+
+  editBill(month) {
+    const bill = new Contract(this.props.family);
+    const monthName = month.format("MMMM");
+    const params = this.state.parameters;
+    const address = params.address;
+    address.phone_number = params.phone_number;
+    address.email = params.email;
+    
+    fetch("/api/periods/" + this.props.family.id, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    }).then(checkStatus).then(parseJSON).then(res => {
+      const rate = { CAF: res.rate.CAF, rate: res.rate.CAF ? bill.calcRate().rate : res.rate.rate };
+      // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
+      Object.keys(this.props.family.children).map(childName => {
+        const child = this.props.family.children[childName];
+        const childPeriods = [];
+        if (child.present === '1') {
+          Object.keys(res.periods).forEach(pChildName => {
+            if (pChildName === childName) {
+              res.periods[childName].forEach(p => {
+                p.range = moment.range(p.range.start, p.range.end);
+                if (p.range.end.year() === month.year()) {
+                  childPeriods.push(p);
+                }
+              });
+            }
+          });
+
+          const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, this.state.contractRange);
+          const monthlyAmount = (rate.rate * (nHours / nMonths)).toFixed(2);
+          debugger;
+          const content = bill.getBill(params.name, address, monthName, childName, nHours, rate, this.state.bills[month.year()][monthName][childName]);
+
+          let docDefinition = {
+            content,
+            styles: {
+              title: { fontSize: 16, bold: true, alignment: "center" },
+              centered: { alignment: "center" },
+              bigTitle: { fontSize: 20, bold: true, alignment: "center" },
+              marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
+            },
+            defaultStyle: { fontSize: 10 },
+            pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
+              return currentNode.startPosition.top >= 750;
+            }
+          };
+
+          pdfMake.createPdf(docDefinition).open();
+        }
+      }); 
+    });
   }
 
   render() {
@@ -149,9 +197,14 @@ export default class Factures extends React.Component {
     }
 
     const months = [];
-    const bills = this.state.bills;
-    
-    this.state.contractRange.by("month", (mm)=>{ const m = this.monthToKey(mm); months.push(mm); bills[m] = bills[m] || [{ hours: "", desc: "" }] });
+    const year = this.state.year;
+    const bills = this.state.bills[year];
+
+    this.state.contractRange.by("month", (mm)=>{ 
+      const m = mm.format('MMMM');
+      months.push(mm);
+      bills[m] = bills[m] || {};
+    });
 
     return (
       <Grid>
@@ -169,45 +222,53 @@ export default class Factures extends React.Component {
             <Col sm={9}>
               <ButtonToolbar className="pull-right">
                 <Button bsStyle="primary" disabled={!this.state.changed} onClick={this.save}>Enregistrer</Button> 
-                <Button bsStyle="primary">Editer facture</Button>
+                <Button bsStyle="primary" onClick={()=>this.editBill(months[this.state.currentMonth])}>Editer facture</Button>
               </ButtonToolbar>
             </Col>
           </FormGroup>
         </Form>
-        {bills[this.monthToKey(months[this.state.currentMonth])].map((line, i) =>
-            <Form horizontal>
-                <FormGroup>
-                  <Col sm={3} componentClass={ControlLabel}>
-                    Heures supplémentaires ou en déduction
-                  </Col>
-                  <Col sm={2}>
-                    <FormControl
-                      readOnly={!auth.admin()}
-                      type="text"
-                      value={line.hours}
-                      onChange={(e)=>this.hoursChanged(months[this.state.currentMonth], i, e.target.value)}
-                    />
-                  </Col>
-                  <Col sm={1} componentClass={ControlLabel}>
-                    Libellé
-                  </Col>
-                  <Col sm={4}>
-                    <FormControl
-                      readOnly={!auth.admin()}
-                      type="text"
-                      value={line.desc}
-                      onChange={(e)=>this.descChanged(months[this.state.currentMonth], i, e.target.value)}
-                    />
-                  </Col>
-                  <Col sm={2}>
-                    <ButtonToolbar className="pull-right">
-                      <Button onClick={()=>this.addLine(months[this.state.currentMonth])}><Glyphicon glyph="plus"/></Button>
-                      <Button onClick={()=>this.removeLine(months[this.state.currentMonth], i)}><Glyphicon glyph="minus"/></Button>
-                    </ButtonToolbar>
-                  </Col>
-                </FormGroup>
-            </Form>
-        )}
+        <p>{' '}</p><p>{' '}</p>
+        {Object.keys(this.props.family.children).map((childName, i) => {
+            const child = this.props.family.children[childName];
+            bills[months[this.state.currentMonth].format("MMMM")][childName] = bills[months[this.state.currentMonth].format("MMMM")][childName] || [{ hours: "", desc: "" }];
+            const bill = bills[months[this.state.currentMonth].format("MMMM")][childName];
+            return child.present === "0" ? "" : <div>
+              <hr></hr>
+              <h4><Label>{childName}</Label></h4>
+              {bill.map((line, i) =>
+                <Form horizontal>
+                  <FormGroup>
+                    <Col sm={3} componentClass={ControlLabel}>
+                      Heures supplémentaires ou en déduction
+                    </Col>
+                    <Col sm={2}>
+                      <FormControl
+                        readOnly={!auth.admin()}
+                        type="text"
+                        value={line.hours}
+                        onChange={(e)=>this.hoursChanged(months[this.state.currentMonth], childName, i, e.target.value)}
+                      />
+                    </Col>
+                    <Col sm={1} componentClass={ControlLabel}>
+                      Libellé
+                    </Col>
+                    <Col sm={4}>
+                      <FormControl
+                        readOnly={!auth.admin()}
+                        type="text"
+                        value={line.desc}
+                        onChange={(e)=>this.descChanged(months[this.state.currentMonth], childName, i, e.target.value)}
+                      />
+                    </Col>
+                    <Col sm={2}>
+                      <ButtonToolbar className="pull-right">
+                        <Button onClick={()=>this.addLine(months[this.state.currentMonth], childName)}><Glyphicon glyph="plus"/></Button>
+                        <Button onClick={()=>this.removeLine(months[this.state.currentMonth], childName, i)}><Glyphicon glyph="minus"/></Button>
+                      </ButtonToolbar>
+                    </Col>
+                  </FormGroup>
+              </Form>)}
+            </div> }) }
       </Grid>
     );
   }

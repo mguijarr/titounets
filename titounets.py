@@ -111,7 +111,7 @@ def extract_families(db):
     families = []
 
     for k in db.scan_iter(): #keys('*'):
-      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.endswith("hours"):
+      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.endswith("hours") or k.endswith("bills"):
         continue
       if not ':children:' in k:
         families.append(extract_family_data(db, k))
@@ -332,6 +332,8 @@ def save():
         p.execute()
 
     for k in db.scan_iter(match=username+":children:*"):
+       if 'periods' in k:
+         continue
        _, _, child_name = k.split(":")
        child_name = child_name.replace("_", " ")
        if not child_name in saved_children:
@@ -406,15 +408,32 @@ def get_calendar():
 def get_bills(username):
     if not session["admin"]:
         return make_response("", 401)
-
-    return jsonify({});
+    db, _ = get_db_et(session["etablissement"])
+    params = db.hgetall("parameters")
+    params['address'] = ast.literal_eval(params.pop("address", '{}'))
+    params['closedPeriods'] = ast.literal_eval(params.pop("closedPeriods", '[]'))
+    bills = {}
+    for year, data in db.hgetall("%s:bills" % username).iteritems():
+      bills[year] = json.loads(data)
+    return jsonify({ "parameters": params, "bills": bills });
 
 @app.route("/api/bills/<username>", methods=["POST"])
 def save_bills(username):
     if not session["admin"]:
         return make_response("", 401)
 
-    return jsonify({});
+    db, _ = get_db_et(session["etablissement"])
+
+    key = "%s:bills" % username
+
+    content = request.get_json()
+
+    with db.pipeline() as p:
+      for year, data in content.iteritems():
+        p.hset(key, year, json.dumps(data))
+      p.execute()
+
+    return jsonify({})
 
 if __name__ == '__main__':
   app.run(host="0.0.0.0", port=5000)
