@@ -11,6 +11,7 @@ export default class Contract {
     this.getBill = this.getBill.bind(this);
     this.getFamilyName = this.getFamilyName.bind(this);
     this.getPeriodsMonthsDaysHours = this.getPeriodsMonthsDaysHours.bind(this);
+    this.getHoursBill = this.getHoursBill.bind(this);
 
     this.family = family;
   }
@@ -92,10 +93,79 @@ export default class Contract {
     return { periods, nMonths, nDays, nHours };
   }
 
-  getBill(name, address, contractPeriod, closedPeriods, childPeriods, rate, monthName, childName, data) {
+  getHoursBill(name, address, monthName, childName, hours, rate) {
     const familyName = this.getFamilyName();
+    return [
+      { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
+      {
+        columns: [
+          { text: `${address.street[0]}`, style: "centered", width: "30%" }
+        ]
+      },
+      {
+        columns: [
+          { text: `${address.street[1]}`, style: "centered", width: "30%" }
+        ]
+      },
+      {
+        columns: [
+          {
+            text: `${address.zip} ${address.city}`,
+            style: "centered",
+            width: "30%"
+          }
+        ]
+      },
+      {
+        columns: [
+          { text: `${address.phone_number}`, style: "centered", width: "30%" }
+        ]
+      },
+      {
+        columns: [
+          { text: `${address.email}`, style: "centered", width: "30%" }
+        ]
+      },
+      " ",
+      " ",
+      { text: "FACTURE", style: "bigTitle" },
+      { text: `du mois de ${monthName}`, style: "title" },
+      " ",
+      " ",
+      {
+        columns: [
+          { text: "Famille:", width: "20%" },
+          { text: `${familyName}`, width: "80%" }
+        ]
+      },
+      { columns: [
+          { text: "Prénom de l'enfant:", width: "20%" },
+          { text: `${childName}`, width: "80%" }
+        ]
+      }
+    ]
+  }
 
-    return[ 
+  getBill(name, address, monthName, childName, nHours, rate, monthlyAmount, data) {
+    const familyName = this.getFamilyName();
+    let nSHours = 0;
+    let nDHours = 0;
+    const SHours = [];
+    const DHours = [];
+    data.map(d => {
+      const n = parseFloat(d.hours);
+      if (! isNaN(n)) {
+        if (n<0) {
+          nDHours -= n;
+          DHours.push([d.desc, (-n).toString(), rate, (n*parseFloat(rate)).toFixed(2).toString()]);
+        } else {
+          nSHours += n;
+          SHours.push([d.desc, n.toString(), rate, (n*parseFloat(rate)).toFixed(2).toString()]);
+        }
+      }
+    });
+
+    return [ 
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
       {
         columns: [
@@ -142,6 +212,22 @@ export default class Contract {
           { text: "Prénom de l'enfant:", width: "20%" },
           { text: `${childName}`, width: "80%" }
         ]
+      },
+      " ",
+      " ",
+      { columns: [ { width: '*', text: '' },
+      {
+        width: 'auto',
+          table: {
+            headerRows: 1,
+            style: "lightHorizontalLines",
+            body: [ [ "Libellé", "Heures", "Taux horaire", "Total" ], ["Contrat", nHours, rate, monthlyAmount],
+                    ["", "", "", ""], [{ text: "Heures venant en déduction", italics: true }, "", "", ""],  ...DHours,
+                    ["", "", "", ""], [{ text: "Heures supplémentaires au contrat", italics: true }, "", "", ""], ...SHours,
+                    ["", "", "", ""], ["", "", { text: "Total dû", bold: true }, { text: (parseFloat(monthlyAmount)+parseFloat(rate)*(nSHours - nDHours)).toFixed(2).toString(), bold: true }]
+                  ]
+          }
+      }, { width: '*', text: '' } ]
       }
     ]
   }
