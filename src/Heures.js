@@ -130,8 +130,8 @@ export default class Heures extends React.Component {
   }
 
   render() {
-    const openingHour = this.state.openingHours[0] * 60;
-    const closingHour = this.state.openingHours[1] * 60;
+    const openingHour = this.state.openingHours[0];
+    const closingHour = this.state.openingHours[1];
 
     if (this.state.busy) {
       return <img className="centered" src="img/spinner.gif" />;
@@ -175,10 +175,11 @@ export default class Heures extends React.Component {
           <Col lg={12}>
             {this.state.children.map((c, i) => {
                 if ((c.contractStart === null) && (! this.state.showAll)) { return "" };
-                const start = c.contractStart !== null ? c.contractStart*60 : openingHour;
-                const end = c.contractEnd !== null ? c.contractEnd*60 : closingHour;
-                const hoursRange = c.hours === null ? [start, end] : [c.hours[0]*60, c.hours[1]*60];
-               
+                const start = c.contractStart !== null ? c.contractStart : openingHour;
+                const end = c.contractEnd !== null ? c.contractEnd : closingHour;
+                c.hours = c.hours || [start, end];
+                const hoursRange = [c.hours[0]*60, c.hours[1]*60];
+ 
                 return (
                   <Row>
                     <Col lg={5}>
@@ -188,18 +189,18 @@ export default class Heures extends React.Component {
                       <div style={{ marginTop: "20px" }}>
                         <ReactBootstrapSlider
                           value={hoursRange}
-                          min={openingHour}
-                          max={closingHour}
+                          min={openingHour*60}
+                          max={closingHour*60}
                           formatter={this.formatHour}
                           disabled={this.state.children[i].disabled ? "disabled" : ""}
                           slideStop={(event)=>{ return this.hoursChanged(i, event.target.value)}}
                           rangeHighlights={
                             [
                               {
-                                start: openingHour,
-                                end: start
+                                start: openingHour*60,
+                                end: start*60
                               },
-                              { start: end, end: closingHour }
+                              { start: end*60, end: closingHour*60 }
                             ]
                           }
                         />

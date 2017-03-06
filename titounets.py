@@ -120,7 +120,7 @@ def extract_families(db):
 
 @app.route("/api/families", methods=["GET"])
 def get_families():
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)
 
     db, _ = get_db_et(session["etablissement"])
@@ -129,7 +129,7 @@ def get_families():
 
 @app.route("/api/children/<date>", methods=["GET"])
 def get_children(date):
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)   
     
     db, _ = get_db_et(session["etablissement"])
@@ -137,14 +137,16 @@ def get_children(date):
     day = dateutil.parser.parse(date).date()
     local_tz = pytz.timezone("Europe/Paris")
 
-    for k in db.scan_iter(match="*:children:*:periods"):
-      username,_,child_name,_ = k.split(":")
+    for k in db.scan_iter(match="*:children:*"): #:periods"):
+      username,_,child_name = k.split(":")[:3]
+      if ':periods' in k:
+        continue
       family_data = extract_family_data(db, username)
       child = family_data["children"][child_name]
       if not bool(int(child.get("present", "1"))):
         continue        
 
-      periods = map(json.loads, db.lrange(k, 0, -1))
+      periods = map(json.loads, db.lrange(k+":periods", 0, -1))
       date_ranges = list()
       for i, p in enumerate(periods):
         date_ranges.append((i, dateutil.parser.parse(p["range"]["start"]), dateutil.parser.parse(p["range"]["end"]))) 
@@ -176,7 +178,7 @@ def get_children(date):
 
 @app.route("/api/childHours", methods=["POST"])
 def set_child_hours():
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)
 
     db, _ = get_db_et(session["etablissement"])
@@ -193,10 +195,29 @@ def set_child_hours():
     return make_response("", 200)
 
 
+@app.route("/api/childHours/<username>", methods=["GET"])
+def get_child_hours(username):
+    if not session.get('admin') and session.get("username") != username:
+        return make_response("", 401)
+ 
+    db, _ = get_db_et(session["etablissement"])
+    ret = {}
+
+    for k in db.scan_iter(match="%s:*:hours" % username):
+        _, childName, _ = k.split(":")
+        ret[childName] = db.hgetall(k)
+        for day in ret[childName]:
+          hoursString = ret[childName][day]
+          hours = map(float, ast.literal_eval(hoursString))
+          ret[childName][day] = hours
+
+    return jsonify(ret)
+        
+
 @app.route("/api/periods/<username>", methods=["GET"])
 def get_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
-    if session['admin'] or int(session["username"]) == username:
+    if session.get('admin') or session.get("username") == username:
         family = extract_family_data(db, username)
         res = { "rate": { "CAF": family["CAFrate"], "rate": family["rate"] } }
         periods = {}
@@ -214,7 +235,7 @@ def get_children_periods(username):
 @app.route("/api/periods/<username>", methods=["POST"])
 def set_children_periods(username):
     db, _ = get_db_et(session["etablissement"])
-    if session['admin'] or int(session["username"]) == username:
+    if session.get('admin') or session.get("username") == username:
         r = request.get_json()
         key = "%s" % username
         periods = r['periods']
@@ -237,7 +258,7 @@ def set_children_periods(username):
    
 @app.route("/api/delfamily", methods=["POST"])
 def del_family():
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)   
     db, _ = get_db_et(session["etablissement"])
     
@@ -253,7 +274,7 @@ def del_family():
 
 @app.route("/api/delchild", methods=["POST"])
 def del_child():
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)
     db, _ = get_db_et(session["etablissement"])
 
@@ -273,14 +294,14 @@ def del_child():
 @app.route("/api/family/<username>", methods=["GET"])
 def get_family(username):
     db, _ = get_db_et(session["etablissement"])
-    if session['admin'] or int(session["username"]) == username:
+    if session.get('admin') or session.get("username") == username:
         return jsonify(extract_family_data(db, username))
     else:
         return make_response("", 401)
 
 @app.route("/api/save", methods=["POST"])
 def save():
-    if not session['admin']:
+    if not session.get('admin'):
       return make_response("", 401)
     db, _ = get_db_et(session["etablissement"])
 
@@ -332,9 +353,10 @@ def save():
         p.execute()
 
     for k in db.scan_iter(match=username+":children:*"):
-       if 'periods' in k:
+       try:
+         _, _, child_name = k.split(":")
+       except Exception:
          continue
-       _, _, child_name = k.split(":")
        child_name = child_name.replace("_", " ")
        if not child_name in saved_children:
          db.delete(k)
@@ -346,7 +368,7 @@ def save():
 def retrieve_caf_data():
   """{'address': {'city': u'ST LAURENT DU PONT', 'street': [u'1579 CHEMIN DES COTES DE VILLETTE', u''], 'zip': u'38380'}, 'parents': [u'SAMIRA ACAJJAOUI', u'MATHIAS GUIJARRO'], 'children': {'ELIAS': {'surname': u'GUIJARRO', 'name': u'ELIAS', 'birthdate': '2013-06-15T00:00:00'}, 'SARA': {'surname': u'GUIJARRO', 'name': u'SARA', 'birthdate': '2011-09-06T00:00:00'}}, 'qf': 77785.0}
   """
-  if not session["admin"]:
+  if not session.get("admin"):
     return make_response("", 401)
 
   content = request.get_json()
@@ -362,7 +384,7 @@ def retrieve_caf_data():
 
 @app.route("/api/caftills", methods=["GET"])
 def get_caf_tills():
-  if not session["admin"]:
+  if not session.get("admin"):
     return make_response("", 401)
 
   return jsonify(session["caf"].keys())
@@ -377,7 +399,7 @@ def get_parameters():
 
 @app.route("/api/saveParameters", methods=["POST"])
 def save_parameters():
-  if not session["admin"]:
+  if not session.get("admin"):
     return make_response("", 401)
 
   db, _ = get_db_et(session["etablissement"])
@@ -390,7 +412,7 @@ def save_parameters():
 
 @app.route("/api/allowContractChanges", methods=["POST"])
 def allow_contract_changes():
-    if not session["admin"]:
+    if not session.get("admin"):
         return make_response("", 401)
 
     content = request.get_json()
@@ -406,9 +428,11 @@ def get_calendar():
 
 @app.route("/api/bills/<username>", methods=["GET"])
 def get_bills(username):
-    if not session["admin"]:
+    if not session.get('admin') and session.get("username") != username:
         return make_response("", 401)
+
     db, _ = get_db_et(session["etablissement"])
+
     params = db.hgetall("parameters")
     params['address'] = ast.literal_eval(params.pop("address", '{}'))
     params['closedPeriods'] = ast.literal_eval(params.pop("closedPeriods", '[]'))
@@ -419,7 +443,7 @@ def get_bills(username):
 
 @app.route("/api/bills/<username>", methods=["POST"])
 def save_bills(username):
-    if not session["admin"]:
+    if not session.get("admin"):
         return make_response("", 401)
 
     db, _ = get_db_et(session["etablissement"])

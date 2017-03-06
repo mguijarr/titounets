@@ -47,7 +47,10 @@ export default class Factures extends React.Component {
       currentMonth: 0, 
       bills: {},
       parameters: {},
-      changed: false
+      changed: false,
+      childHours: {},
+      periods: {},
+      rate: {}
     };
 
     this.addLine = this.addLine.bind(this);
@@ -58,6 +61,7 @@ export default class Factures extends React.Component {
     this.save = this.save.bind(this);
     this.getData = this.getData.bind(this);
     this.editBill = this.editBill.bind(this);
+    this.childPeriods = this.childPeriods.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -73,6 +77,20 @@ export default class Factures extends React.Component {
   getData(familyId) {
     this.setState({ busy: true });
 
+    const promises = [fetch("/api/childHours/" + this.props.family.id, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    }).then(checkStatus).then(parseJSON).then(childHours => {
+      this.setState({ childHours });
+    }),
+    fetch("/api/periods/" + this.props.family.id, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    }).then(checkStatus).then(parseJSON).then(res => {
+      this.setState({ periods: res.periods, rate: res.rate });
+    }),
     fetch("/api/bills/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -88,8 +106,10 @@ export default class Factures extends React.Component {
       });
       const bills = res.bills[year] || {};
       res.bills[year] = bills;
-      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractRange, busy: false }); 
-    });
+      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractRange });
+    })];
+
+    Promise.all(promises).then(() => { this.setState({busy: false}) });
   }
 
   save() {
@@ -136,6 +156,21 @@ export default class Factures extends React.Component {
     this.setState({ bills, changed: true });
   }
 
+  childPeriods(childName, month) {
+    const childPeriods = [];
+    Object.keys(this.state.periods).forEach(pChildName => {
+          if (pChildName === childName) {
+            this.state.periods[childName].forEach(p => {
+              p.range = moment.range(p.range.start, p.range.end);
+              if (p.range.end.year() === month.year()) {
+                childPeriods.push(p);
+              }
+            });
+          }
+        });
+    return childPeriods;
+  }
+
   editBill(month) {
     const bill = new Contract(this.props.family);
     const monthName = month.format("MMMM");
@@ -143,52 +178,46 @@ export default class Factures extends React.Component {
     const address = params.address;
     address.phone_number = params.phone_number;
     address.email = params.email;
-    
-    fetch("/api/periods/" + this.props.family.id, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    }).then(checkStatus).then(parseJSON).then(res => {
-      const rate = { CAF: res.rate.CAF, rate: res.rate.CAF ? bill.calcRate().rate : res.rate.rate };
-      // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
-      Object.keys(this.props.family.children).map(childName => {
-        const child = this.props.family.children[childName];
-        const childPeriods = [];
-        if (child.present === '1') {
-          Object.keys(res.periods).forEach(pChildName => {
-            if (pChildName === childName) {
-              res.periods[childName].forEach(p => {
-                p.range = moment.range(p.range.start, p.range.end);
-                if (p.range.end.year() === month.year()) {
-                  childPeriods.push(p);
-                }
-              });
-            }
-          });
+    const content = [];
+    const rate = this.state.rate.rate || bill.calcRate().rate;
 
+    // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
+    Object.keys(this.props.family.children).map(childName => {
+      const child = this.props.family.children[childName];
+      if (child.present === '1') {
+        const childPeriods = this.childPeriods(childName, month);
+
+        if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
+        if (childPeriods.length === 0) {
+          // heures reelles
+          content.push(
+            ...bill.getHoursBill(params.name, address, monthName, childName, this.state.childHours[childName], rate)
+          );     
+        } else {
           const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, this.state.contractRange);
-          const monthlyAmount = (rate.rate * (nHours / nMonths)).toFixed(2);
-          debugger;
-          const content = bill.getBill(params.name, address, monthName, childName, nHours, rate, this.state.bills[month.year()][monthName][childName]);
+          const monthlyAmount = (rate * (nHours / nMonths)).toFixed(2);
 
-          let docDefinition = {
-            content,
-            styles: {
-              title: { fontSize: 16, bold: true, alignment: "center" },
-              centered: { alignment: "center" },
-              bigTitle: { fontSize: 20, bold: true, alignment: "center" },
-              marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
-            },
-            defaultStyle: { fontSize: 10 },
-            pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
-              return currentNode.startPosition.top >= 750;
-            }
-          };
-
-          pdfMake.createPdf(docDefinition).open();
+          content.push(
+            ...bill.getBill(params.name, address, monthName, childName, nHours.toString(), rate, monthlyAmount, this.state.bills[month.year()][monthName][childName])
+          );
         }
-      }); 
+      }
     });
+
+    let docDefinition = {
+      content,
+      styles: {
+        title: { fontSize: 16, bold: true, alignment: "center" },
+        centered: { alignment: "center" },
+        bigTitle: { fontSize: 20, bold: true, alignment: "center" },
+        marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
+      },
+      defaultStyle: { fontSize: 10 },
+      pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
+        return currentNode.startPosition.top >= 750;
+      }
+    }
+    if (content.length > 0) { pdfMake.createPdf(docDefinition).download(); }
   }
 
   render() {
@@ -205,6 +234,7 @@ export default class Factures extends React.Component {
       months.push(mm);
       bills[m] = bills[m] || {};
     });
+
 
     return (
       <Grid>
@@ -230,6 +260,28 @@ export default class Factures extends React.Component {
         <p>{' '}</p><p>{' '}</p>
         {Object.keys(this.props.family.children).map((childName, i) => {
             const child = this.props.family.children[childName];
+            const childPeriods = this.childPeriods(childName, months[this.state.currentMonth]);
+            const childHours = this.state.childHours[childName] || {};
+            if (childPeriods.length === 0) { return <div>
+              <hr></hr>
+              <h4><Label>{childName}</Label></h4>
+              <Table stripped bordered condensed hover>
+                <thead>
+                  <tr>
+                    <th>Jour</th>
+                    <th>Arrivee</th>
+                    <th>Depart</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.keys(childHours).map((day) => {
+                    const hours = childHours[day];
+                    return <tr><th>{day}</th><th>{hours[0]}</th><th>{hours[1]}</th></tr>
+                  })}
+                </tbody>
+              </Table>
+            </div>;
+           } else {
             bills[months[this.state.currentMonth].format("MMMM")][childName] = bills[months[this.state.currentMonth].format("MMMM")][childName] || [{ hours: "", desc: "" }];
             const bill = bills[months[this.state.currentMonth].format("MMMM")][childName];
             return child.present === "0" ? "" : <div>
@@ -268,7 +320,7 @@ export default class Factures extends React.Component {
                     </Col>
                   </FormGroup>
               </Form>)}
-            </div> }) }
+            </div>} }) }
       </Grid>
     );
   }
