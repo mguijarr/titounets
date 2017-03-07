@@ -330,3 +330,13 @@ export function getCAFData(id, till, cb) {
       });
 }
 
+export function formatHour(m) {
+  // m: minutes or array for range of minutes
+  if (m.constructor === Array) {
+    return formatHour(m[0]) + " - " + formatHour(m[1]);
+  } else {
+    const hh = ("0" + Math.floor(m / 60)).slice(-2);
+    const mm = ("0" + m % 60).slice(-2);
+    return `${hh}:${mm}`;
+  }
+}

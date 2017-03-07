@@ -95,6 +95,20 @@ export default class Contract {
 
   getHoursBill(name, address, monthName, childName, hours, rate) {
     const familyName = this.getFamilyName();
+
+    const hoursTable = [];
+    let amount = 0;
+
+    hours.forEach((h,i) => {
+      const a = parseFloat(h.arriving);
+      const b = parseFloat(h.leaving);
+      const dayAmount = parseFloat(rate)*(b-a);
+      amount += dayAmount;
+      hoursTable.push([h.day, h.label1, h.label2, (b-a).toString(), rate, dayAmount.toFixed(2).toString()]);
+    });
+
+    hoursTable.push(["", "", "", "", { text: "Total dû", bold: true }, { text: amount.toFixed(2).toString(), bold: true }]);
+
     return [
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
       {
@@ -142,7 +156,18 @@ export default class Contract {
           { text: "Prénom de l'enfant:", width: "20%" },
           { text: `${childName}`, width: "80%" }
         ]
-      }
+      },
+      " ",
+      " ",
+      { columns: [ { width: '*', text: '' },
+      {
+        width: 'auto',
+          table: {
+            headerRows: 1,
+            style: "lightHorizontalLines",
+            body: [ [ "Jour", "Arrivée", "Départ", "Heures", "Taux horaire", "Total" ],  ...hoursTable ]
+          }
+      }, { width: '*', text: '' } ] }
     ]
   }
 

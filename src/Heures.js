@@ -24,7 +24,7 @@ import {
 } from "react-bootstrap";
 import ChildData from "./child.js";
 import auth from "./auth";
-import { checkStatus, parseJSON } from "./utils";
+import { checkStatus, parseJSON, formatHour } from "./utils";
 
 export default class Heures extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -39,7 +39,6 @@ export default class Heures extends React.Component {
       showAll: false
     };
 
-    this.formatHour = this.formatHour.bind(this);
     this.dateChanged = this.dateChanged.bind(this);
     this.getChildrenList = this.getChildrenList.bind(this);
     this.setHours = this.setHours.bind(this);
@@ -90,16 +89,6 @@ export default class Heures extends React.Component {
     Promise.all(promises).then(() => { this.setState({ busy: false })});
   }
 
-  formatHour(m) {
-    // m: minutes or array for range of minutes
-    if (m.constructor === Array) {
-      return this.formatHour(m[0]) + " - " + this.formatHour(m[1]);
-    } else {
-      const hh = ("0" + Math.floor(m / 60)).slice(-2);
-      const mm = ("0" + m % 60).slice(-2);
-      return `${hh}:${mm}`;
-    }
-  }
 
   dateChanged(isodate) {
     this.setState({ date: isodate, busy: true });
@@ -191,7 +180,7 @@ export default class Heures extends React.Component {
                           value={hoursRange}
                           min={openingHour*60}
                           max={closingHour*60}
-                          formatter={this.formatHour}
+                          formatter={formatHour}
                           disabled={this.state.children[i].disabled ? "disabled" : ""}
                           slideStop={(event)=>{ return this.hoursChanged(i, event.target.value)}}
                           rangeHighlights={

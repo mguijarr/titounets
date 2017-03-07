@@ -92,7 +92,11 @@ def extract_family_data(db, username):
         else:
           family["children"][child_name]["present"] = "0"
 
-    family.pop("password")
+    try:
+        family.pop("password")
+    except KeyError:
+        return family
+
     family['address'] = { "street": [family.pop("address1"), family.pop("address2")],
                           "city": family.pop("city"),
                           "zip": family.pop("zip") }
