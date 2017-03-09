@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { Router, hashHistory, IndexRoute, Route } from "react-router";
 
+import 'bootstrap/dist/css/bootstrap.css';
 import auth from "./auth";
 import LoginScreen from "./LoginScreen";
 import App from "./App";

@@ -36,6 +36,7 @@ import {
 import ChildData from "./child.js";
 import GestionContrat from "./GestionContrat.js";
 import Factures from './Factures.js';
+import spinner from "./img/spinner.gif";
 
 class GestionFamilles extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -481,7 +482,7 @@ class GestionFamilles extends React.Component {
           </Nav>
         </Row>
         <Row>
-          {this.state.busy ? <img className="centered" src="img/spinner.gif" /> : contents}
+          {this.state.busy ? <img className="centered" src={spinner} /> : contents}
         </Row>
         </div>
         <Modal show={this.state.showAddFamily} onHide={() => { this.setState({ showAddFamily: false }) }}>

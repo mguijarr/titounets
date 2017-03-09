@@ -11,6 +11,9 @@ import {
 import { LinkContainer } from "react-router-bootstrap";
 import auth from "./auth";
 import { withRouter } from "react-router";
+import girl from "./img/girl.svg";
+import abacus from "./img/abacus.svg";
+import puzzle from "./img/puzzle.svg";
 
 class MainApp extends React.Component {
   constructor(props) {
@@ -35,16 +38,16 @@ class MainApp extends React.Component {
           </Navbar.Header>
           <Nav>
             {auth.admin() ? <LinkContainer to="/parametres">
-                  <NavItem eventKey={0}><img src="img/puzzle.svg" style={{width: '48px', height: 'auto'}}/>{' '}Paramètres</NavItem>
+                  <NavItem eventKey={0}><img src={puzzle} style={{width: '48px', height: 'auto'}}/>{' '}Paramètres</NavItem>
                 </LinkContainer> : ""}
             <LinkContainer to="/gestion">
               <NavItem eventKey={1}>
-                <img src="img/girl.svg" style={{width: '48px', height: 'auto'}}/>
+                <img src={girl} style={{width: '48px', height: 'auto'}}/>
                 {auth.admin() ? "Gestion Familles" : "Gestion"}
               </NavItem>
             </LinkContainer>
             {auth.admin() ? <LinkContainer to="/heures">
-                  <NavItem eventKey={3}><img src="img/abacus.svg" style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
+                  <NavItem eventKey={3}><img src={abacus} style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
                 </LinkContainer> : ""}
           </Nav>
           <Nav pullRight>

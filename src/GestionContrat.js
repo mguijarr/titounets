@@ -36,6 +36,7 @@ import {
 import "../node_modules/pdfmake/build/pdfmake.min.js";
 import Contract from "./contrat";
 import TimeTable from "./timeTable";
+import spinner from "./img/spinner.gif";
 
 export default class GestionContrat extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -402,7 +403,7 @@ export default class GestionContrat extends React.Component {
     this.childCheckbox = {};
 
     if (this.state.busy) {
-      return <img className="centered" src="img/spinner.gif" />;
+      return <img className="centered" src={spinner} />;
     }
 
     if (!auth.admin() && !this.state.enabled) {

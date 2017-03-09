@@ -2,8 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom";
 import DatePicker from "react-bootstrap-date-picker";
 import { ReactBootstrapSlider } from "react-bootstrap-slider";
-import "bootstrap-slider/dist/css/bootstrap-slider.min.css!";
-import "./css/Heures.css!";
+import "bootstrap-slider/dist/css/bootstrap-slider.min.css";
+import "./css/Heures.css";
 import {
   Grid,
   Row,
@@ -25,6 +25,7 @@ import {
 import ChildData from "./child.js";
 import auth from "./auth";
 import { checkStatus, parseJSON, formatHour } from "./utils";
+import spinner from "./img/spinner.gif";
 
 export default class Heures extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -123,7 +124,7 @@ export default class Heures extends React.Component {
     const closingHour = this.state.openingHours[1];
 
     if (this.state.busy) {
-      return <img className="centered" src="img/spinner.gif" />;
+      return <img className="centered" src={spinner} />;
     }
 
     return (
