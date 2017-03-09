@@ -35,6 +35,7 @@ import moment from "moment";
 import "moment-range";
 import "moment/locale/fr";
 import "./css/calendar.css";
+import spinner from "./img/spinner.gif";
 
 class Parametres extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -255,7 +256,7 @@ class Parametres extends React.Component {
 
   render() {
     if (this.state.busy) {
-      return <img className="centered" src="img/spinner.gif" />;
+      return <img className="centered" src={spinner} />;
     }
 
     const contractYear = moment(this.state.contractStart).year();

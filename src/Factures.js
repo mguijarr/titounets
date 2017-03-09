@@ -31,9 +31,9 @@ import {
   findDays,
   formatHour
 } from "./utils";
-import "pdfmake";
-import "pdfmake-fonts";
+import "../node_modules/pdfmake/build/pdfmake.min.js";
 import Contract from "./contrat";
+import spinner from "./img/spinner.gif";
 
 export default class Factures extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -259,7 +259,7 @@ export default class Factures extends React.Component {
 
   render() {
     if (this.state.busy) {
-      return <img className="centered" src="img/spinner.gif" />;
+      return <img className="centered" src={spinner} />
     }
 
     const months = [];
