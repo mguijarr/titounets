@@ -50,15 +50,13 @@ class MainApp extends React.Component {
                   <NavItem eventKey={3}><img src={abacus} style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
                 </LinkContainer> : ""}
           </Nav>
-          <Nav pullRight>
-            <div style={{ marginTop: "12px" }}>
+          <Navbar.Form pullRight>
               <Button
                  className="navbar-btn btn-danger btn-sm"
                  onClick={this.signOut}
               >Déconnecter
               </Button>
-            </div>
-          </Nav>
+          </Navbar.Form>
         </Navbar>
         {this.props.children}
       </div>

@@ -45,7 +45,6 @@ export default class Contract {
 
   getPeriodsMonthsDaysHours(childPeriods, closedPeriods, contractPeriod) {
      const periods = [];
-     let nMonths = 0;
      let nDays = 0;
      let nHours = 0;
 
@@ -69,7 +68,7 @@ export default class Contract {
        const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
 
        const r = moment.range(p.range.start, p.range.end);
-       r.by("days", d => {
+       for (const d of r.by("day")) {
          if (! isClosed(d, closedPeriods)) {
            const hour = p.timetable[d.weekday()+1];
            if (hour) {
@@ -77,7 +76,7 @@ export default class Contract {
              nDays += 1;
            }
          }
-       });
+       }
 
        days.forEach(d => {
          const hour = p.timetable[d];
@@ -88,7 +87,7 @@ export default class Contract {
     });
 
     const r = moment.range(contractPeriod.start, contractPeriod.end);
-    r.by("months", m => { nMonths += 1 });
+    const nMonths = Array.from(r.by("month")).length;
 
     return { periods, nMonths, nDays, nHours };
   }

@@ -1,6 +1,6 @@
 import React from "react";
-import moment from "moment";
-import "moment-range";
+import Moment from "moment";
+import { extendMoment } from "moment-range";
 import {
   Grid,
   Row,
@@ -32,8 +32,11 @@ import {
   formatHour
 } from "./utils";
 import "../node_modules/pdfmake/build/pdfmake.min.js";
+import "../node_modules/pdfmake/build/vfs_fonts.js";
 import Contract from "./contrat";
 import spinner from "./img/spinner.gif";
+
+const moment = extendMoment(Moment);
 
 export default class Factures extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -44,7 +47,8 @@ export default class Factures extends React.Component {
     let last_year = today.add(-1, "years");
     this.state = {
       busy: true,
-      contractRange: moment.range(last_year, last_year),
+      contractStart: last_year,
+      contractEnd: last_year,
       currentMonth: 0, 
       bills: {},
       parameters: {},
@@ -102,14 +106,14 @@ export default class Factures extends React.Component {
       const parameters = res.parameters;
       const contractStart = moment(new Date(parameters.contractStart));
       const contractEnd = moment(new Date(parameters.contractEnd));
-      const contractRange = moment.range(contractStart, contractEnd);
+      //const contractRange = moment.range(contractStart, contractEnd);
       const year = contractStart.year();
       parameters.closedPeriods = res.parameters.closedPeriods.map(p => {
         return moment.range(p);
       });
       const bills = res.bills[year] || {};
       res.bills[year] = bills;
-      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractRange });
+      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractStart, contractEnd });
     })];
 
     Promise.all(promises).then(() => { this.setState({busy: false}) });
@@ -159,13 +163,13 @@ export default class Factures extends React.Component {
     this.setState({ bills, changed: true });
   }
 
-  childPeriods(childName, month) {
+  childPeriods(childName, year) {
     const childPeriods = [];
     Object.keys(this.state.periods).forEach(pChildName => {
           if (pChildName === childName) {
             this.state.periods[childName].forEach(p => {
               p.range = moment.range(p.range.start, p.range.end);
-              if (p.range.end.year() === month.year()) {
+              if (p.range.end.year() === year) {
                 childPeriods.push(p);
               }
             });
@@ -188,7 +192,7 @@ export default class Factures extends React.Component {
     Object.keys(this.props.family.children).map(childName => {
       const child = this.props.family.children[childName];
       if (child.present === '1') {
-        const childPeriods = this.childPeriods(childName, month);
+        const childPeriods = this.childPeriods(childName, this.state.year);
 
         if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
         if (childPeriods.length === 0) {
@@ -197,7 +201,7 @@ export default class Factures extends React.Component {
             ...bill.getHoursBill(params.name, address, monthName, childName, this.getChildHours(childName), rate)
           );     
         } else {
-          const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, this.state.contractRange);
+          const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); //this.state.contractRange);
           const monthlyAmount = (rate * (nHours / nMonths)).toFixed(2);
 
           content.push(
@@ -265,12 +269,13 @@ export default class Factures extends React.Component {
     const months = [];
     const year = this.state.year;
     const bills = this.state.bills[year];
-
-    this.state.contractRange.by("month", (mm)=>{ 
+    const contractRange = moment.range(this.state.contractStart, this.state.contractEnd);
+    for (const mm of contractRange.by("month")) {
       const m = mm.format('MMMM');
       months.push(mm);
       bills[m] = bills[m] || {};
-    });
+    }
+    const currentMonthName = months[this.state.currentMonth] ? months[this.state.currentMonth].format("MMMM") : ""; 
 
     return (
       <Grid>
@@ -281,7 +286,7 @@ export default class Factures extends React.Component {
               Mois de 
             </Col>
             <Col sm={2}>
-              <DropdownButton title={months[this.state.currentMonth].format('MMMM')}>
+              <DropdownButton id="current-month" title={currentMonthName}>
                 {months.map((m, i) => <MenuItem key={i} onSelect={()=>this.selectMonth(i)}>{m.format('MMMM')}</MenuItem>)}
               </DropdownButton>
             </Col>
@@ -296,7 +301,7 @@ export default class Factures extends React.Component {
         <p>{' '}</p><p>{' '}</p>
         {Object.keys(this.props.family.children).map((childName, i) => {
             const child = this.props.family.children[childName];
-            const childPeriods = this.childPeriods(childName, months[this.state.currentMonth]);
+            const childPeriods = this.childPeriods(childName, year);
             const childHours = this.state.childHours[childName] || {};
             if (childPeriods.length === 0) { return <div>
               <hr></hr>
@@ -317,8 +322,8 @@ export default class Factures extends React.Component {
               </Table>
             </div>;
            } else {
-            bills[months[this.state.currentMonth].format("MMMM")][childName] = bills[months[this.state.currentMonth].format("MMMM")][childName] || [{ hours: "", desc: "" }];
-            const bill = bills[months[this.state.currentMonth].format("MMMM")][childName];
+            bills[currentMonthName][childName] = bills[currentMonthName][childName] || [{ hours: "", desc: "" }];
+            const bill = bills[currentMonthName][childName];
             return child.present === "0" ? "" : <div>
               <hr></hr>
               <span><h4><Label>{childName}</Label></h4><h4>facturation au contrat</h4></span>

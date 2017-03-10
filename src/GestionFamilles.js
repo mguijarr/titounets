@@ -325,7 +325,7 @@ class GestionFamilles extends React.Component {
         const familyName = getFamilyName(family);
         title = `${familyName} (${family.id})`;
       }
-      families = (<DropdownButton title={title} key={1}>
+      families = (<DropdownButton title={title} id='families-dropdown' key={1}>
         {this.state.families.sort((a, b) => {
           if (getFamilyName(a) < getFamilyName(b)) {
             return -1;
@@ -334,7 +334,7 @@ class GestionFamilles extends React.Component {
           }
         }).map((f, i) => {
           return (
-            <MenuItem eventKey={f.id} onSelect={this.familySelected}>
+            <MenuItem key={i} eventKey={f.id} onSelect={this.familySelected}>
               {getFamilyName(f) + " (" + f.id + ")"}
             </MenuItem>
           );

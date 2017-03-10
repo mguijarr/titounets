@@ -1,6 +1,6 @@
 import React from "react";
-import moment from "moment";
-import "moment-range";
+import Moment from "moment";
+import { extendMoment } from "moment-range";
 import "moment/locale/fr";
 import { Calendar } from "react-yearly-calendar";
 import {
@@ -15,7 +15,6 @@ import {
   Glyphicon,
   Panel,
   Modal,
-  DropdownButton,
   MenuItem,
   Table,
   FormGroup,
@@ -34,9 +33,12 @@ import {
   getFamilyName
 } from "./utils";
 import "../node_modules/pdfmake/build/pdfmake.min.js";
+import "../node_modules/pdfmake/build/vfs_fonts.js";
 import Contract from "./contrat";
 import TimeTable from "./timeTable";
 import spinner from "./img/spinner.gif";
+
+const moment = extendMoment(Moment);
 
 export default class GestionContrat extends React.Component {
   // eslint-disable-line react/prefer-stateless-function
@@ -180,7 +182,7 @@ export default class GestionContrat extends React.Component {
         let start = moment(r.start);
         let end = moment(r.start);
         let current_range = null;
-        r.by("day", (d) => {
+        for (const d of r.by("day")) {
             if (isHoliday(d, this.state.holidays)) {
                 if (current_range != null) {
                   ranges.push(current_range);
@@ -192,7 +194,7 @@ export default class GestionContrat extends React.Component {
                 current_range = moment.range(start, end);
                 end.add(1, "days"); 
             }
-        });
+        };
         if (current_range != null) {
           ranges.push(current_range);
         }
