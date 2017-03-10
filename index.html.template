@@ -5,6 +5,8 @@
   </head>
   <link href="https://fonts.googleapis.com/css?family=Love+Ya+Like+A+Sister" rel="stylesheet"> 
   <body>
-    <div id='app'/>
+    <div id='app'>
+      Chargement en cours...
+    </div>
   </body>
 </html>
