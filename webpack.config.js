@@ -6,7 +6,16 @@ module.exports = function(env) {
   return {
     entry: {
       main: './src/main.js',
-      vendor: 'moment'
+      vendor: ['moment',
+               'moment-range',
+               'react-bootstrap',
+               'react',
+               'react-router',
+               'react-router-bootstrap',
+               'react-bootstrap-slider',
+               'react-bootstrap-time-picker',
+               'react-bootstrap-date-picker', 
+               'react-yearly-calendar']
     },
     output: {
       filename: '[chunkhash].[name].js',
@@ -24,9 +33,15 @@ module.exports = function(env) {
         {
           test: /\.css$/,
           use: [
-            'style-loader',
-            'css-loader?modules'
-          ],
+          {
+            loader: "style-loader"
+          },
+          {
+            loader: "css-loader",
+            options: {
+              modules: false
+            }
+          }],
         },
         { test: /\.gif$/, use: "file-loader" },
         { test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, use: "file-loader" },
@@ -43,7 +58,8 @@ module.exports = function(env) {
         title: 'Titounets',
         filename: 'index.html',
         template: 'index.html.template'
-      })
+      }),
+      new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /fr(%|\.js)/)
     ]
   }
 };

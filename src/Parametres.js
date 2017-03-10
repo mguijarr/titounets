@@ -31,11 +31,13 @@ import {
   getAddress,
   TimePicker
 } from "./utils";
-import moment from "moment";
-import "moment-range";
+import Moment from 'moment';
+import { extendMoment } from 'moment-range';
 import "moment/locale/fr";
 import "./css/calendar.css";
 import spinner from "./img/spinner.gif";
+
+const moment = extendMoment(Moment);
 
 class Parametres extends React.Component {
   // eslint-disable-line react/prefer-stateless-function

@@ -9,20 +9,22 @@ import {
   ControlLabel,
   Glyphicon
 } from "react-bootstrap";
-import moment from "moment";
-import "moment-range";
+import Moment from "moment";
+import { extendMoment } from "moment-range";
+
+const moment = extendMoment(Moment);
 
 export function findDays(period) {
   const days = {};
   // return array of days present in a range
   const range = moment.range(...period);
-  range.by("days", moment => {
+  for (const moment of range.by("day")) {
     const day = moment.isoWeekday();
     // iso day: 1=Monday, 7=Sunday
     if (day <= 5) {
       days[day] = true;
     }
-  });
+  }
   const daysArray = Object.keys(days);
   daysArray.sort();
   return daysArray;

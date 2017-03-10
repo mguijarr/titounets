@@ -6,6 +6,7 @@ import {
 } from "./utils";
 import auth from "./auth";
 import { withRouter } from "react-router";
+import house from "./img/house.svg";
 
 class LoginScreenComponent extends React.Component {
   constructor(props) {
@@ -51,7 +52,7 @@ class LoginScreenComponent extends React.Component {
         {(this.props.showError ? <Alert bsStyle="danger"><h4>Authentification invalide.</h4></Alert> : '')}
         <Row>
           <center>
-            <img src="img/house.svg" style={{ width: '320px', height: '256px', marginTop: '50px'}} />
+            <img src={house} style={{ width: '320px', height: '256px', marginTop: '50px'}} />
             <h1 style={{fontFamily: 'Love Ya Like A Sister', fontSize: '96px'}}>Crèche Online</h1>
           </center>
         </Row>

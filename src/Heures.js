@@ -156,7 +156,7 @@ export default class Heures extends React.Component {
             />
           </Col>
           <Col lg={2} lgOffset={1}>
-            <DropdownButton key="1" title={this.state.showAll ? "Afficher tous" : "Afficher selon contrat"}>
+            <DropdownButton key="1" id='contract-display' title={this.state.showAll ? "Afficher tous" : "Afficher selon contrat"}>
               <MenuItem eventKey="1" onClick={this.toggleDisplay}>{this.state.showAll ? "Afficher selon contrat" : "Afficher tous"}</MenuItem>
             </DropdownButton>
           </Col>
