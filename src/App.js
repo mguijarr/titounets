@@ -10,7 +10,7 @@ import {
 } from "react-bootstrap";
 import { LinkContainer } from "react-router-bootstrap";
 import auth from "./auth";
-import { withRouter } from "react-router";
+import { Link, withRouter } from "react-router";
 import girl from "./img/girl.svg";
 import abacus from "./img/abacus.svg";
 import puzzle from "./img/puzzle.svg";
@@ -31,10 +31,10 @@ class MainApp extends React.Component {
     return (
       <div style={{ display: "block" }}>
         <Navbar inverse={auth.admin()}>
-          <Navbar.Header>
-            <Navbar.Brand>
+          <Navbar.Header style={{ paddingTop: '12px' }}>
+            <Link to="/" className="navbar-brand">
               <span style={{fontFamily: 'Love Ya Like A Sister', fontSize: '32px', marginTop: '12px'}}>{auth.etablissement()}</span>
-            </Navbar.Brand>
+            </Link>
           </Navbar.Header>
           <Nav>
             {auth.admin() ? <LinkContainer to="/parametres">
@@ -50,7 +50,7 @@ class MainApp extends React.Component {
                   <NavItem eventKey={3}><img src={abacus} style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
                 </LinkContainer> : ""}
           </Nav>
-          <Navbar.Form pullRight>
+          <Navbar.Form pullRight style={{ paddingTop: '7px' }}>
               <Button
                  className="navbar-btn btn-danger btn-sm"
                  onClick={this.signOut}

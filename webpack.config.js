@@ -15,7 +15,9 @@ module.exports = function(env) {
                'react-bootstrap-slider',
                'react-bootstrap-time-picker',
                'react-bootstrap-date-picker', 
-               'react-yearly-calendar']
+               'react-yearly-calendar',
+               'react-draft-wysiwyg',
+               'draft-js']
     },
     output: {
       filename: '[chunkhash].[name].js',
@@ -44,10 +46,8 @@ module.exports = function(env) {
           }],
         },
         { test: /\.gif$/, use: "file-loader" },
-        { test: /\.eot(\?v=\d+\.\d+\.\d+)?$/, use: "file-loader" },
-        { test: /\.(woff|woff2)$/, use:"url-loader?prefix=font/&limit=5000" },
-        { test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, use: "url-loader?limit=10000&mimetype=application/octet-stream" },
-        { test: /\.svg(\?v=\d+\.\d+\.\d+)?$/, use: "url-loader?limit=10000&mimetype=image/svg+xml" }
+        { test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "url-loader?limit=10000&mimetype=application/font-woff" },
+        { test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "file-loader" }
       ],
     },
     plugins: [

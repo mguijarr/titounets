@@ -1,4 +1,5 @@
-from flask import Flask, session, request, jsonify, make_response, redirect
+from flask import Flask, session, request, jsonify, make_response, redirect, send_from_directory, url_for
+from werkzeug import secure_filename
 from flask_compress import Compress
 from flask_session import Session
 import redis
@@ -13,6 +14,8 @@ import ast
 
 REDIS_PASSWORD = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 REDIS_PASSWORD = REDIS_PASSWORD.strip()
+UPLOAD_FOLDER = "/tmp"
+ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
 
 app = Flask("titounets", static_url_path='', static_folder='')
 Compress(app)
@@ -20,6 +23,11 @@ SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis(host='localhost', port=6379, db=0, password=REDIS_PASSWORD)
 app.config.from_object(__name__)
 Session(app)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db_et(et, dbs={}, ets_dict={}):
   try:
@@ -462,6 +470,27 @@ def save_bills(username):
       p.execute()
 
     return jsonify({})
+
+@app.route("/api/file", methods=["POST"])
+def upload_file():
+  if not session.get("admin"):
+     return make_response("", 401)
+
+  print request.files
+  if 'file' not in request.files:
+     return redirect(request.url)
+  file = request.files['file']
+  if file.filename == '':
+     return redirect(request.url)
+  if file and allowed_file(file.filename):
+     filename = secure_filename(file.filename)
+     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+     return redirect(url_for('uploaded_file',
+                            filename=filename))
+
+@app.route('/tmp/<filename>')
+def uploaded_file(filename):
+  return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 if __name__ == '__main__':
   app.run(host="0.0.0.0", port=5000)
