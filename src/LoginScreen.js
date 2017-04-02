@@ -74,7 +74,7 @@ class LoginScreenComponent extends React.Component {
                   <FormControl type="password" placeholder="Mot de passe" inputRef={(ref)=>{this.txtPassword=ref}}/>
                 </FormGroup>
                 <FormGroup bsSize="large">
-                  <Button bsStyle="primary btn-block" bsSize="large" onClick={this.signIn}>Se connecter</Button>
+                  <Button bsStyle="primary" block bsSize="large" onClick={this.signIn}>Se connecter</Button>
                 </FormGroup>                
               </Col>
             </Row>

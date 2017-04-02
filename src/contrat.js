@@ -92,7 +92,7 @@ export default class Contract {
     return { periods, nMonths, nDays, nHours };
   }
 
-  getHoursBill(name, address, monthName, childName, hours, rate) {
+  getHoursBill(name, address, monthName, year, childName, hours, rate) {
     const familyName = this.getFamilyName();
 
     const hoursTable = [];
@@ -142,7 +142,7 @@ export default class Contract {
       " ",
       " ",
       { text: "FACTURE", style: "bigTitle" },
-      { text: `du mois de ${monthName}`, style: "title" },
+      { text: `du mois de ${monthName} ${year}`, style: "title" },
       " ",
       " ",
       {
@@ -170,7 +170,7 @@ export default class Contract {
     ]
   }
 
-  getBill(name, address, monthName, childName, nHours, rate, monthlyAmount, data) {
+  getBill(name, address, monthName, year, childName, nHours, rate, monthlyAmount, data) {
     const familyName = this.getFamilyName();
     let nSHours = 0;
     let nDHours = 0;
@@ -223,7 +223,7 @@ export default class Contract {
       " ",
       " ",
       { text: "FACTURE", style: "bigTitle" },
-      { text: `du mois de ${monthName}`, style: "title" },
+      { text: `du mois de ${monthName} ${year}`, style: "title" },
       " ",
       " ",
       {

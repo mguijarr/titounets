@@ -1,6 +1,5 @@
 from flask import Flask, session, request, jsonify, make_response, redirect, send_from_directory, url_for
 from werkzeug import secure_filename
-from flask_compress import Compress
 from flask_session import Session
 import redis
 import os
@@ -11,14 +10,15 @@ import json
 import dateutil.parser
 import pytz
 import ast
+import hashlib
+import cStringIO
 
 REDIS_PASSWORD = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 REDIS_PASSWORD = REDIS_PASSWORD.strip()
-UPLOAD_FOLDER = "/tmp"
+UPLOAD_FOLDER = os.path.join(os.environ["HOME"], "storage") 
 ALLOWED_EXTENSIONS = set(["jpg", "jpeg", "png"])
 
 app = Flask("titounets", static_url_path='', static_folder='')
-Compress(app)
 SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis(host='localhost', port=6379, db=0, password=REDIS_PASSWORD)
 app.config.from_object(__name__)
@@ -123,7 +123,7 @@ def extract_families(db):
     families = []
 
     for k in db.scan_iter(): #keys('*'):
-      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.endswith("hours") or k.endswith("bills"):
+      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.startswith("homepage") or k.endswith("hours") or k.endswith("bills"):
         continue
       if not ':children:' in k:
         families.append(extract_family_data(db, k))
@@ -476,21 +476,45 @@ def upload_file():
   if not session.get("admin"):
      return make_response("", 401)
 
-  print request.files
   if 'file' not in request.files:
      return redirect(request.url)
   file = request.files['file']
   if file.filename == '':
      return redirect(request.url)
   if file and allowed_file(file.filename):
-     filename = secure_filename(file.filename)
-     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-     return redirect(url_for('uploaded_file',
-                            filename=filename))
+     fileBuf = cStringIO.StringIO()
+     file.save(fileBuf)
+     hash_md5 = hashlib.md5()
+     for chunk in iter(lambda: fileBuf.read(4096), b""):
+            hash_md5.update(chunk)
+     filename = hash_md5.hexdigest()
+     filepath = os.path.join(UPLOAD_FOLDER, filename)
+     with open(filepath, "wb") as f:
+       f.write(fileBuf.getvalue())
+     return jsonify({ "link": filepath })
 
-@app.route('/tmp/<filename>')
+@app.route(os.path.join(UPLOAD_FOLDER, '<filename>'))
 def uploaded_file(filename):
   return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+@app.route("/api/editorContents", methods=["POST"])
+def set_editor_contents():
+  if not session.get("admin"):
+     return make_response("", 401)
+
+  db, _ = get_db_et(session["etablissement"])
+ 
+  content = request.get_json()
+
+  db.set("homepage", content)  
+
+  return make_response("", 200)
+
+@app.route("/api/editorContents", methods=["GET"])
+def get_editor_contents():
+  db, _ = get_db_et(session["etablissement"])
+ 
+  return jsonify(ast.literal_eval(db.get("homepage")) or {})
 
 if __name__ == '__main__':
   app.run(host="0.0.0.0", port=5000)

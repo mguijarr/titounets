@@ -436,11 +436,12 @@ class GestionFamilles extends React.Component {
                   );
                 }) : ""}
             </Row>
+            { auth.admin() ?
             <Row>
               <div className="pull-right" style={{marginTop: '15px'}}>
                   <Button bsStyle="primary" onClick={()=>{this.setState({ showAddChild: true })}}><Glyphicon glyph="plus"/> Ajouter enfant</Button>
               </div>
-            </Row>
+            </Row> : null }
           </Col>
         </div>
       );

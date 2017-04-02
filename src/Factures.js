@@ -197,15 +197,18 @@ export default class Factures extends React.Component {
         if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
         if (childPeriods.length === 0) {
           // heures reelles
-          content.push(
-            ...bill.getHoursBill(params.name, address, monthName, childName, this.getChildHours(childName), rate)
-          );     
+          const childHours = this.getChildHours(childName);
+          if (childHours.length > 0) {
+            content.push(
+              ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate)
+            );
+          }     
         } else {
           const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); //this.state.contractRange);
           const monthlyAmount = (rate * (nHours / nMonths)).toFixed(2);
 
           content.push(
-            ...bill.getBill(params.name, address, monthName, childName, nHours.toString(), rate, monthlyAmount, this.state.bills[month.year()][monthName][childName])
+            ...bill.getBill(params.name, address, monthName, this.state.year, childName, nHours.toString(), rate, monthlyAmount, this.state.bills[month.year()][monthName][childName])
           );
         }
       }
@@ -301,6 +304,7 @@ export default class Factures extends React.Component {
         <p>{' '}</p><p>{' '}</p>
         {Object.keys(this.props.family.children).map((childName, i) => {
             const child = this.props.family.children[childName];
+            if (child.present === "0") { return "" }
             const childPeriods = this.childPeriods(childName, year);
             const childHours = this.state.childHours[childName] || {};
             if (childPeriods.length === 0) { return <div>
