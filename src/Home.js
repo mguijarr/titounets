@@ -76,6 +76,7 @@ export default class HomePage extends React.Component {
                   toolbar={{options: ["inline", "blockType", "fontSize", "fontFamily", "list", "textAlign", "colorPicker", "link", "image", "history"], image: { uploadCallback: this.uploadCallback }}}
                   placeholder="Créez votre page d'accueil ici"
                   readOnly={ auth.admin() ? false : true }
+                  locale="fr"
                   toolbarHidden={ auth.admin() ? false : true }
             />
           </Col>
