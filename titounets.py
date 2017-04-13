@@ -91,7 +91,7 @@ def extract_family_data(db, username):
 
     family["children"] = {}
     for k in db.scan_iter(match="%s:children:*" % username):
-        if 'periods' in k:
+        if 'periods' in k or 'hours' in k:
             continue
         child_name = k.split(":")[-1].replace(" ", "_")
         family["children"][child_name] = db.hgetall(k)
@@ -151,7 +151,7 @@ def get_children(date):
 
     for k in db.scan_iter(match="*:children:*"): #:periods"):
       username,_,child_name = k.split(":")[:3]
-      if ':periods' in k:
+      if ':periods' in k or ':hours' in k:
         continue
       family_data = extract_family_data(db, username)
       child = family_data["children"][child_name]
@@ -180,8 +180,9 @@ def get_children(date):
 
     children = []
     for surname, name, username, contract_start, contract_end in result:
+      print username, name, day, day.isoformat(), "%s:children:%s:hours" % (username, name)
       try:
-        hours = ast.literal_eval(db.hget("%s:%s:hours" % (username, name), day.isoformat()))
+        hours = ast.literal_eval(db.hget("%s:children:%s:hours" % (username, name), day.isoformat()))
       except ValueError:
         hours = None
       children.append({ "surname": surname, "name": name, "id": username, "contractStart": contract_start, "contractEnd": contract_end, "hours": hours })
@@ -202,7 +203,7 @@ def set_child_hours():
     hours = data["hours"] 
     name = data["name"].replace(" ", "_")
     
-    db.hset("%s:%s:hours" % (data["id"], name), day.isoformat(), str(hours))
+    db.hset("%s:children:%s:hours" % (data["id"], name), day.isoformat(), str(hours))
 
     return make_response("", 200)
 
@@ -215,8 +216,8 @@ def get_child_hours(username):
     db, _ = get_db_et(session["etablissement"])
     ret = {}
 
-    for k in db.scan_iter(match="%s:*:hours" % username):
-        _, childName, _ = k.split(":")
+    for k in db.scan_iter(match="%s:children:*:hours" % username):
+        _, _, childName, _ = k.split(":")
         ret[childName] = db.hgetall(k)
         for day in ret[childName]:
           hoursString = ret[childName][day]

@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import locale
 import re
 import sys
-import dateutil.parser as dateparser
+import dateparser
 
 """import logging
 import httplib
@@ -102,7 +102,8 @@ def get_data(matricule, USERNAME, PASSWORD):
     for child_node in children_nodes:
       surname, name, birthdate = filter(None, [x.text.strip()  for x in child_node.find_all("td")])
       birthdate = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", birthdate).group()
-      birthdate = dateparser.parse(birthdate).isoformat()
+      print birthdate
+      birthdate = dateparser.parse(birthdate, languages=['fr']).isoformat()
       children[name] = { "surname": surname, "name": name, "birthdate": birthdate }
     
     result['children'] = children
@@ -110,6 +111,6 @@ def get_data(matricule, USERNAME, PASSWORD):
   return result
 
 if __name__ == '__main__':
-  print get_data(MATRICULE)
+  print get_data(MATRICULE, *sys.argv[2:])
 
 

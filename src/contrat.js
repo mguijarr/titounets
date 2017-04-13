@@ -39,7 +39,7 @@ export default class Contract {
     const nChildren = Object.keys(this.family.children).length;
     const CAF = rates[nChildren];
     let rate = monthlyIncome * CAF / 100.;
-    rate = rate.toFixed(3);
+    rate = rate.toFixed(2);
     return { CAF, rate };
   }
 
@@ -358,7 +358,7 @@ export default class Contract {
           { text: "N\xB0 allocataire:", width: "20%" },
           { text: `${f.id}`, width: "20%" },
           {
-            text: `Revenus annuels: ${f.qf}, revenu mensuel: ${monthlyIncome} euros`,
+            text: `Revenu mensuel: ${monthlyIncome} euros`,
             width: "60%"
           }
         ]
@@ -396,7 +396,7 @@ export default class Contract {
         columns: [
           { text: "Taux horaire:", width: "20%" },
           {
-            text: `${rate.rate}${rate.CAF > 0 ? `, en application du taux CAF ${rate.CAF} (${nChildren} ${nChildren > 1 ? "enfants" : "enfant"} dans la famille)` : ""}`,
+            text: `${rate.rate}${rate.CAF > 0 ? `, en application du barème CNAF ${rate.CAF} (${nChildren} ${nChildren > 1 ? "enfants" : "enfant"} dans la famille)` : ""}`,
             width: "80%"
           }
         ]
@@ -405,8 +405,15 @@ export default class Contract {
       { text: `Tarif mensuel: ${monthlyAmount} euros`, style: "title" },
       " ",
       {
-        text: `Fait à ${address.city} le ${this.today}. Signature des parents ou du représentant légal:`,
+        text: `Fait à ${address.city} le ${this.today}.`,
         style: "centered"
+      },
+      " ",
+      {
+       columns: [
+         { text: "Signature des parents ou du représentant légal:", width: "70%" },
+         { text: "Signature de l'établissement:", width: "30%" }
+       ]
       }
     ];
   }
