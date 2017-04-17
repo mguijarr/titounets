@@ -205,7 +205,8 @@ export default class Factures extends React.Component {
           }     
         } else {
           const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); //this.state.contractRange);
-          const monthlyAmount = (rate * (nHours / nMonths)).toFixed(2);
+          const hoursByMonth = (nHours / nMonths).toFixed(2); 
+          const monthlyAmount = (rate * hoursByMonth).toFixed(2);
 
           const data = [];
 
@@ -224,7 +225,7 @@ export default class Factures extends React.Component {
           });
           
           content.push(
-            ...bill.getBill(params.name, address, monthName, this.state.year, childName, nHours.toString(), rate, monthlyAmount, data)
+            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, monthlyAmount, data)
           );
         }
       }
@@ -247,6 +248,8 @@ export default class Factures extends React.Component {
   }
 
   adjustHour(h, d) {
+    const opening = Number(this.state.parameters.opening);
+    const closing = Number(this.state.parameters.closing);
     let H = 0;
     d = d || 1;
     if (d < 0) {
@@ -256,8 +259,8 @@ export default class Factures extends React.Component {
       H = Math.ceil(h);
       if ((H - h) > 0.5) { H-=0.5; }
     }
-    if (H < this.state.parameters.opening) { H = this.state.parameters.opening; }
-    if (H > this.state.parameters.closing) { H = this.state.parameters.closing; }
+    if (H < opening) { H = opening; }
+    if (H > closing) { H = closing; }
     return H;
   }
 
@@ -278,8 +281,10 @@ export default class Factures extends React.Component {
               let leaving = contractHours[1]*60;
               const c1 = formatHour(arriving);
               const c2 = formatHour(leaving);
+              //console.log("c1 "+c1+", c2 "+c2);
               const h1 = formatHour(hours[0]*60);
               const h2 = formatHour(hours[1]*60);
+              //console.log("h1 "+h1+", h2 "+h2);
               if (((hours[0]*60) - arriving) < -1) {
                 arriving = 60*this.adjustHour(hours[0], -1);
                 skip = false;
@@ -309,6 +314,7 @@ export default class Factures extends React.Component {
         }
       }
     });
+    //console.log(res);
     return res;
   }
 
