@@ -47,7 +47,7 @@ class Parametres extends React.Component {
     moment.locale("fr");
 
     const today = moment();
-    const last_year = moment(today.add(-1, "years"));
+    const last_year = today.add(-1, "years");
     this.state = {
       currentTab: 0,
       currentRange: [ last_year, last_year ],
@@ -221,14 +221,9 @@ class Parametres extends React.Component {
             return true;
           }
           return false;
-        }));
+        })) { return };
     }
 
-    /*if (closedPeriods.some((p)=>{return p.overlaps(moment.range(moment(start).add(-1,'days'),moment(end).add(1,"days")))})) {
-      // overlapping period
-      return;
-    }
-    */
     const p = moment.range(start, end);
     closedPeriods.push(p);
 
@@ -242,13 +237,14 @@ class Parametres extends React.Component {
   delPeriod(i) {
     const periods = this.state.closedPeriods;
     const today = moment();
-    const last_year = moment(today.add(-1, "years"));
+    const last_year = today.add(-1, "years");
 
     periods.splice(i, 1);
     this.setState({
       enableSave: true,
       closedPeriods: periods,
-      currentRange: [ last_year, last_year ]
+      currentRange: [ last_year, last_year ],
+      showDeletePeriod: false
     });
   }
 

@@ -64,7 +64,7 @@ export default class Heures extends React.Component {
         this.setState({ children: res.map((c)=>{
            c.disabled = c.hours !== null;
            return c
-        }), busy: !!keepBusy });
+        }), busy: !!keepBusy }, this.forceUpdate);
       });
   }
 
@@ -89,7 +89,6 @@ export default class Heures extends React.Component {
 
     Promise.all(promises).then(() => { this.setState({ busy: false })});
   }
-
 
   dateChanged(isodate) {
     this.setState({ date: isodate, busy: true });
@@ -169,9 +168,9 @@ export default class Heures extends React.Component {
                 const end = c.contractEnd !== null ? c.contractEnd : closingHour;
                 c.hours = c.hours || [start, end];
                 const hoursRange = [c.hours[0]*60, c.hours[1]*60];
- 
+                const disabled = c.disabled ? "disabled" : "";
                 return (
-                  <Row>
+                  <Row key={i}>
                     <Col lg={5}>
                       <h3>{c.surname + " " + c.name}</h3>
                     </Col>
@@ -181,8 +180,9 @@ export default class Heures extends React.Component {
                           value={hoursRange}
                           min={openingHour*60}
                           max={closingHour*60}
+                          step={5}
                           formatter={formatHour}
-                          disabled={this.state.children[i].disabled ? "disabled" : ""}
+                          disabled={disabled}
                           slideStop={(event)=>{ return this.hoursChanged(i, event.target.value)}}
                           rangeHighlights={
                             [
@@ -198,10 +198,10 @@ export default class Heures extends React.Component {
                     </Col>
                     <Col lg={2}>
                       <div style={{ marginTop: "10px" }}>
-                        <Button bsStyle="success" disabled={this.state.children[i].disabled} onClick={()=>{ this.setHours(i) }}>
+                        <Button bsStyle="success" disabled={c.disabled} onClick={()=>{ this.setHours(i) }}>
                           <Glyphicon glyph="ok" />
                         </Button>
-                        <Button disabled={!this.state.children[i].disabled} onClick={()=>{const children=this.state.children; children[i].disabled=false; this.setState({children})}}>
+                        <Button disabled={!c.disabled} onClick={()=>{ c.disabled=false; this.setState({children: this.state.children})}}>
                           Editer
                         </Button>
                       </div>
