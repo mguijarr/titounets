@@ -286,11 +286,11 @@ export default class Factures extends React.Component {
               const h1 = formatHour(hours[0]*60);
               const h2 = formatHour(hours[1]*60);
               //console.log("h1 "+h1+", h2 "+h2);
-              if (((hours[0]*60) - arriving) < -1) {
+              if (((hours[0]*60) - arriving) < -5) {
                 arriving = 60*this.adjustHour(hours[0], -1);
                 skip = false;
               }
-              if (((hours[1]*60) - leaving) > 1) {
+              if (((hours[1]*60) - leaving) > 5) {
                 leaving = 60*this.adjustHour(hours[1]);
                 skip = false;
               }
