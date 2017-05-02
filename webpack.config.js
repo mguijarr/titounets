@@ -17,7 +17,8 @@ module.exports = function(env) {
                'react-bootstrap-date-picker', 
                'react-yearly-calendar',
                'react-draft-wysiwyg',
-               'draft-js']
+               'draft-js'],
+      utils: './src/utils.js'
     },
     output: {
       filename: '[chunkhash].[name].js',
@@ -52,7 +53,7 @@ module.exports = function(env) {
     },
     plugins: [
       new webpack.optimize.CommonsChunkPlugin({
-        names: ['vendor', 'manifest']
+        names: ['vendor', 'utils', 'manifest']
       }),
       new HtmlWebpackPlugin({
         title: 'Titounets',
