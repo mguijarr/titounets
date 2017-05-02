@@ -12,6 +12,7 @@ months = { "JANVIER": 1,
            "FEVRIER": 2,
            "MARS": 3,
            "AVRIL": 4,
+           "APRIL": 4,
            "MAI": 5,
            "JUIN": 6,
            "JUILLET": 7,
@@ -35,8 +36,15 @@ def extract_presence(filename):
     rows = list(r)
     day_start = 9
     
-    for i, field in enumerate(rows[1]):
+    for j, field in enumerate(rows[1]):
+      i = j
       if i == day_start:
+        if not field:
+          day_start+=1
+          i -= 1
+          continue
+        if field == "A LA DEMI HEURE":
+          break
         day_start += 4
         try:
             d,m,y = field.split(",")[-1].split()
@@ -49,15 +57,17 @@ def extract_presence(filename):
         if y < 2000:
           y += 2000
         dates[i]=(int(d),months[m.upper()],y)
- 
+
     for row in rows[3:]:
       fields = list(row)
-
       name = fields[0]
-      if not name:
+      if name == 'CONTROLE':
         break
+      if not name:
+        continue
       child =  { "name": name, "presence": [] }
       children.append(child)
+      
       for i, date in dates.iteritems():
         if fields[i] and fields[i+1]:
           hours = [convert_time(fields[i]), convert_time(fields[i+1])]
@@ -92,7 +102,8 @@ def name_match(last_name, p1, p2=""):
 def find_db_key(child_name, db=1, db_connection=None):
   if db_connection is None:
     db_connection = redis.Redis(host='localhost', port=6379, db=db, password=REDIS_PASSWORD)
-
+  
+  print [x.upper().encode("utf-8") for x in child_name.split()]
   last_name, first_name = [x.upper().encode("utf-8") for x in child_name.split()]
   last_name = last_name.replace("_", " ")
   
@@ -120,11 +131,16 @@ def find_db_key(child_name, db=1, db_connection=None):
 
 if __name__ == '__main__':
   children = extract_presence(sys.argv[1])
-  child = children[0]["name"]
+  #child = children[0]["name"]
   db_connection = redis.Redis(host='localhost', port=6379, db=int(sys.argv[2]), password=REDIS_PASSWORD)
   for child in children:
-    key = find_db_key(child["name"], db_connection=db_connection)  
-    print key
+    key = find_db_key(child["name"], db_connection=db_connection) 
+    if key is None:
+      print 'skipping', key
+      continue
+    print key+" ",
+    for presence in child["presence"]:
+      print presence["date"]
     hours = dict()
     for presence in child["presence"]:
       db_connection.hset(key+":hours", presence["date"], presence["hours"])
