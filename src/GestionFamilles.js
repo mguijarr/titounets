@@ -71,6 +71,7 @@ class GestionFamilles extends React.Component {
     this.addressChanged = this.addressChanged.bind(this);
     this.childChanged = this.childChanged.bind(this);
     this.addChild = this.addChild.bind(this);
+    this.toggleFamilyActiveState = this.toggleFamilyActiveState.bind(this);
   }
 
   componentDidMount() {
@@ -314,6 +315,27 @@ class GestionFamilles extends React.Component {
       });
   }
 
+  toggleFamilyActiveState() {
+    const family = this.state.selectedFamily;
+    const newActiveState = (!(family.active === '1')) ? "1" : "0";
+
+    this.setState({ busy: true });
+    
+    fetch("/api/family/setactive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        username: family.id,
+        active: newActiveState 
+      })
+    })
+    .then(checkStatus).then(() => {
+      family.active = newActiveState;
+      this.setState({ busy: false, selectedFamily: family });
+    });
+  }
+
   render() {
     const adminView = auth.loggedIn() && auth.admin();
     const family = this.state.selectedFamily;
@@ -343,30 +365,28 @@ class GestionFamilles extends React.Component {
     }
 
     let contents = null;
+    if (Object.keys(family).length > 0) {
     if (this.state.currentTab == 0) {
       contents = (
         <div>
           <Col lg={12}>
             <Row>
-              <div className="pull-right" style={{marginTop: '15px'}}>
+              <div style={{marginTop: '15px'}} className="pull-right">
                 <ButtonToolbar>
                   {auth.admin() ? 
                   <Button
-                    disabled={Object.keys(family).length === 0 || family.till === "MSA"}
+                    disabled={family.till === "MSA" || family.active==='0'}
                     onClick={this.synchroniseFamily}
                   ><Glyphicon
                         glyph="refresh"
                       /> Synchroniser CAF</Button> : ""}
                     <Button
                       bsStyle="primary"
-                      disabled={!this.state.enableSave || !family.id}
+                      disabled={!this.state.enableSave || !family.id || family.active==='0'}
                       onClick={this.saveData}
                     >Enregistrer</Button>
                 </ButtonToolbar>
               </div>
-            </Row>
-            <Row>
-            <h3><Label>Famille</Label></h3>
             </Row>
             <Row>
               <Form horizontal>
@@ -376,7 +396,7 @@ class GestionFamilles extends React.Component {
                   </Col>
                   <Col lg={2}>
                     <TextInput
-                      readOnly={!auth.admin()}
+                      readOnly={!auth.admin() || family.active==='0'}
                       valueObject={this.state.formValues}
                       valueKey="id"
                       onChange={this.formValueChanged}
@@ -385,7 +405,7 @@ class GestionFamilles extends React.Component {
                   <Col lg={2} componentClass={ControlLabel}>Revenus annuels</Col>
                   <Col lg={2}>
                     <TextInput
-                      readOnly={!auth.admin()}
+                      readOnly={!auth.admin() || family.active==='0'}
                       valueObject={this.state.formValues}
                       valueKey="qf"
                       onChange={this.formValueChanged}
@@ -396,6 +416,7 @@ class GestionFamilles extends React.Component {
                   <Col lg={2} componentClass={ControlLabel}>Parents</Col>
                   <Col lg={10}>
                     <TextInput
+                      readOnly={family.active==='0'}
                       valueObject={this.state.formValues}
                       valueKey="parent1"
                       onChange={this.formValueChanged}
@@ -406,6 +427,7 @@ class GestionFamilles extends React.Component {
                   <Col lg={2} componentClass={ControlLabel}>{" "}</Col>
                   <Col lg={10}>
                     <TextInput
+                      readOnly={family.active==='0'}
                       valueObject={this.state.formValues}
                       valueKey="parent2"
                       onChange={this.formValueChanged}
@@ -415,12 +437,14 @@ class GestionFamilles extends React.Component {
               </Form>
             </Row>
             <AddressFields
+              readOnly={family.active==='0'}
               valueChanged={this.addressChanged}
               formValues={this.state.addressFields}
             />
             <Row>
             </Row>
-            <h3><Label>Enfants</Label></h3>
+            <hr/>
+            <h3>Enfants</h3>
             <Row>
                 {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
                   const c = family.children[childName];
@@ -428,7 +452,7 @@ class GestionFamilles extends React.Component {
                   return (
                     <ChildData
                       data={c}
-                      readOnly={!auth.admin()}
+                      readOnly={!auth.admin() || family.active==='0'}
                       onChange={(k, v) => {
                         this.childChanged(childName, k, v);
                       }}
@@ -439,7 +463,7 @@ class GestionFamilles extends React.Component {
             { auth.admin() ?
             <Row>
               <div className="pull-right" style={{marginTop: '15px'}}>
-                  <Button bsStyle="primary" onClick={()=>{this.setState({ showAddChild: true })}}><Glyphicon glyph="plus"/> Ajouter enfant</Button>
+                  <Button bsStyle="primary" disabled={family.active==='0'} onClick={()=>{this.setState({ showAddChild: true })}}><Glyphicon glyph="plus"/> Ajouter enfant</Button>
               </div>
             </Row> : null }
           </Col>
@@ -457,17 +481,29 @@ class GestionFamilles extends React.Component {
           <Factures family={family}/>
         </Col>
       );
-    }
+    }}
 
     return (
       <Grid>
         {adminView ? <Row>
-          <span>
+          <Col lg={6}>
             {families}{'   '}
-            <Button bsStyle="primary" onClick={() => { this.setState({ showAddFamily: true }) }}><Glyphicon glyph="plus" />Ajouter famille</Button>
-            {'   '}
-            <Button bsStyle="primary" onClick={() => { this.setState({ showDelFamily: true }) }}><Glyphicon glyph="remove" />Supprimer famille</Button>
-          </span>
+            { family.id ? 
+            <DropdownButton noCaret bsStyle={family.active === '1' ? "success": "warning"} title={family.active === '1' ? "Famille active" : "Famille suspendue"} id="activate-family-dropdown" key={2}>
+                  <MenuItem key={21} onSelect={this.toggleFamilyActiveState}>
+                    {family.active === '1' ? "Suspendre" : "Activer"}
+                  </MenuItem>
+            </DropdownButton> : "" }
+          </Col>
+          <Col lg={6}>
+            <span className="pull-right">
+              <Button bsStyle="primary" onClick={() => { this.setState({ showAddFamily: true }) }}><Glyphicon glyph="plus" />Ajouter famille</Button>
+              {'   '}
+              { family.id ? 
+              <Button bsStyle="danger" onClick={() => { this.setState({ showDelFamily: true }) }}><Glyphicon glyph="remove" />Supprimer</Button>
+              : "" }
+            </span>
+          </Col>
         </Row> : ""}
         <p>{' '}</p>
         <div style={{marginTop: "30px"}}>
@@ -483,7 +519,7 @@ class GestionFamilles extends React.Component {
           </Nav>
         </Row>
         <Row>
-          {this.state.busy ? <img className="centered" src={spinner} /> : contents}
+          {this.state.busy ? <img className="centered" src={spinner} /> : contents }
         </Row>
         </div>
         <Modal show={this.state.showAddFamily} onHide={() => { this.setState({ showAddFamily: false }) }}>

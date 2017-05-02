@@ -88,6 +88,7 @@ def logout():
 def extract_family_data(db, username):
     db, _ = get_db_et(session["etablissement"])
     family = db.hgetall(username)
+    family.setdefault("active", "1")
 
     family["children"] = {}
     for k in db.scan_iter(match="%s:children:*" % username):
@@ -292,7 +293,7 @@ def del_child():
     db, _ = get_db_et(session["etablissement"])
 
     content = request.get_json()
-    username = int(content["username"])
+    username = content["username"]
     child_name = content["child_name"].replace(" ", "_")
     key = "%s:children:%s" % (username, child_name)   
  
@@ -309,6 +310,17 @@ def get_family(username):
     db, _ = get_db_et(session["etablissement"])
     if session.get('admin') or session.get("username") == username:
         return jsonify(extract_family_data(db, username))
+    else:
+        return make_response("", 401)
+
+@app.route("/api/family/setactive", methods=["POST"])
+def activate_family():
+    db, _ = get_db_et(session["etablissement"])
+    if session.get('admin'):
+        content = request.get_json()
+        username = content["username"]
+        db.hset(username, "active", content["active"])
+        return make_response("", 200)
     else:
         return make_response("", 401)
 

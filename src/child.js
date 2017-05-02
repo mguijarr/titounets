@@ -17,8 +17,7 @@ import {
   PanelGroup,
   Modal
 } from "react-bootstrap";
-import DatePicker from "react-bootstrap-date-picker";
-import { TextInput } from "./utils";
+import { TextInput, DatePicker } from "./utils";
 import auth from './auth';
 
 export default class ChildData extends React.Component {
@@ -69,7 +68,7 @@ export default class ChildData extends React.Component {
           </Col>
           <Col sm={2}>
             {auth.admin() ? <div className="pull-right">
-              <Button onClick={()=>{this.setState({showDelChild: true})}}><Glyphicon glyph="remove"/></Button>
+              <Button disabled={this.props.readOnly} onClick={()=>{this.setState({showDelChild: true})}}><Glyphicon glyph="remove"/></Button>
             </div> : "" }
           </Col>
         </FormGroup>
@@ -81,25 +80,6 @@ export default class ChildData extends React.Component {
               onChange={d => {
                   this.dataChanged("birthdate", d);
                 }}
-              monthLabels={
-                [
-                  "Janvier",
-                  "Fevrier",
-                  "Mars",
-                  "Avril",
-                  "Mai",
-                  "Juin",
-                  "Juillet",
-                  "Aout",
-                  "Septembre",
-                  "Octobre",
-                  "Novembre",
-                  "Decembre"
-                ]
-              }
-              dayLabels={[ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]}
-              dateFormat="DD/MM/YYYY"
-              showClearButton={false}
               value={this.props.data.birthdate}
             />
           </Col>

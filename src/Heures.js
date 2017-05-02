@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import DatePicker from "react-bootstrap-date-picker";
 import { ReactBootstrapSlider } from "react-bootstrap-slider";
 import "bootstrap-slider/dist/css/bootstrap-slider.min.css";
 import "./css/Heures.css";
@@ -24,7 +23,7 @@ import {
 } from "react-bootstrap";
 import ChildData from "./child.js";
 import auth from "./auth";
-import { checkStatus, parseJSON, formatHour } from "./utils";
+import { checkStatus, parseJSON, formatHour, DatePicker } from "./utils";
 import spinner from "./img/spinner.gif";
 
 export default class Heures extends React.Component {
@@ -131,26 +130,7 @@ export default class Heures extends React.Component {
         <Row>
           <Col lg={5} lgOffset={2}>
             <DatePicker
-              monthLabels={
-                [
-                  "Janvier",
-                  "Fevrier",
-                  "Mars",
-                  "Avril",
-                  "Mai",
-                  "Juin",
-                  "Juillet",
-                  "Aout",
-                  "Septembre",
-                  "Octobre",
-                  "Novembre",
-                  "Decembre"
-                ]
-              }
-              dayLabels={[ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]}
-              dateFormat="DD/MM/YYYY"
               value={this.state.date}
-              showClearButton={false}
               onChange={this.dateChanged}
             />
           </Col>

@@ -11,6 +11,7 @@ import {
 } from "react-bootstrap";
 import Moment from "moment";
 import { extendMoment } from "moment-range";
+import _DatePicker from "react-bootstrap-date-picker";
 
 const moment = extendMoment(Moment);
 
@@ -198,6 +199,7 @@ export class AddressFields extends React.Component {
             <Col sm={2} componentClass={ControlLabel}>Adresse</Col>
             <Col sm={10}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="address1"
                 onChange={this.formValueChanged}
@@ -208,6 +210,7 @@ export class AddressFields extends React.Component {
             <Col sm={2} componentClass={ControlLabel}>{" "}</Col>
             <Col sm={10}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="address2"
                 onChange={this.formValueChanged}
@@ -218,6 +221,7 @@ export class AddressFields extends React.Component {
             <Col sm={2} componentClass={ControlLabel}>CP</Col>
             <Col sm={3}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="zip"
                 onChange={this.formValueChanged}
@@ -226,6 +230,7 @@ export class AddressFields extends React.Component {
             <Col sm={1} componentClass={ControlLabel}>Ville</Col>
             <Col sm={6}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="city"
                 onChange={this.formValueChanged}
@@ -236,6 +241,7 @@ export class AddressFields extends React.Component {
             <Col sm={2} componentClass={ControlLabel}>Email</Col>
             <Col sm={6}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="email"
                 onChange={this.formValueChanged}
@@ -244,6 +250,7 @@ export class AddressFields extends React.Component {
             <Col sm={1} componentClass={ControlLabel}>Tel</Col>
             <Col sm={3}>
               <TextInput
+                readOnly={this.props.readOnly}
                 valueObject={this.props.formValues}
                 valueKey="phone_number"
                 onChange={this.formValueChanged}
@@ -255,6 +262,8 @@ export class AddressFields extends React.Component {
     );
   }
 }
+
+AddressFields.defaultProps = { readOnly: false };
 
 function easter(Y) {
   var C = Math.floor(Y / 100);
@@ -337,8 +346,33 @@ export function formatHour(m) {
   if (m.constructor === Array) {
     return formatHour(m[0]) + " - " + formatHour(m[1]);
   } else {
+    m = parseInt(m);
     const hh = ("0" + Math.floor(m / 60)).slice(-2);
     const mm = ("0" + m % 60).slice(-2);
     return `${hh}:${mm}`;
   }
 }
+
+export const DatePicker = (prop) => (
+   <_DatePicker monthLabels={
+                      [
+                        "Janvier",
+                        "Fevrier",
+                        "Mars",
+                        "Avril",
+                        "Mai",
+                        "Juin",
+                        "Juillet",
+                        "Aout",
+                        "Septembre",
+                        "Octobre",
+                        "Novembre",
+                        "Decembre"
+                      ]
+                    }
+                    showClearButton={false}
+                    dayLabels={
+                      [ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]
+                    }
+                    dateFormat="DD/MM/YYYY" {...prop}/>
+);

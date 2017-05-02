@@ -1,7 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { withRouter } from 'react-router';
-import DatePicker from "react-bootstrap-date-picker";
 import { Calendar } from "react-yearly-calendar";
 import {
   Grid,
@@ -29,7 +28,8 @@ import {
   parseJSON,
   AddressFields,
   getAddress,
-  TimePicker
+  TimePicker,
+  DatePicker
 } from "./utils";
 import Moment from 'moment';
 import { extendMoment } from 'moment-range';
@@ -352,56 +352,14 @@ class Parametres extends React.Component {
                 <Col sm={2} componentClass={ControlLabel}>Contrats du</Col>
                 <Col sm={4}>
                   <DatePicker
-                    monthLabels={
-                      [
-                        "Janvier",
-                        "Fevrier",
-                        "Mars",
-                        "Avril",
-                        "Mai",
-                        "Juin",
-                        "Juillet",
-                        "Aout",
-                        "Septembre",
-                        "Octobre",
-                        "Novembre",
-                        "Decembre"
-                      ]
-                    }
-                    dayLabels={
-                      [ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]
-                    }
-                    dateFormat="DD/MM/YYYY"
                     value={this.state.contractStart}
-                    showClearButton={false}
                     onChange={this.contractStartChanged}
                   />
                 </Col>
                 <Col sm={2} componentClass={ControlLabel}>au</Col>
                 <Col sm={4}>
                   <DatePicker
-                    monthLabels={
-                      [
-                        "Janvier",
-                        "Fevrier",
-                        "Mars",
-                        "Avril",
-                        "Mai",
-                        "Juin",
-                        "Juillet",
-                        "Aout",
-                        "Septembre",
-                        "Octobre",
-                        "Novembre",
-                        "Decembre"
-                      ]
-                    }
-                    dayLabels={
-                      [ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]
-                    }
-                    dateFormat="DD/MM/YYYY"
                     value={this.state.contractEnd}
-                    showClearButton={false}
                     onChange={this.contractEndChanged}
                   />
                 </Col>

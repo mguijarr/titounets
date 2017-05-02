@@ -29,7 +29,8 @@ import {
   checkStatus,
   parseJSON,
   findDays,
-  formatHour
+  formatHour,
+  DatePicker
 } from "./utils";
 import "../node_modules/pdfmake/build/pdfmake.min.js";
 import "../node_modules/pdfmake/build/vfs_fonts.js";
@@ -69,6 +70,7 @@ export default class Factures extends React.Component {
     this.childPeriods = this.childPeriods.bind(this);
     this.adjustHour = this.adjustHour.bind(this);
     this.getChildHours = this.getChildHours.bind(this);
+    this.hasPeriods = this.hasPeriods.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -106,14 +108,13 @@ export default class Factures extends React.Component {
       const parameters = res.parameters;
       const contractStart = moment(new Date(parameters.contractStart));
       const contractEnd = moment(new Date(parameters.contractEnd));
-      //const contractRange = moment.range(contractStart, contractEnd);
       const year = contractStart.year();
       parameters.closedPeriods = res.parameters.closedPeriods.map(p => {
         return moment.range(p);
       });
       const bills = res.bills[year] || {};
       res.bills[year] = bills;
-      this.setState({ parameters, currentMonth: 0, changed: false, bills: res.bills, year, contractStart, contractEnd });
+      this.setState({ parameters, currentMonth: moment().month(), changed: false, bills: res.bills, year, contractStart, contractEnd });
     })];
 
     Promise.all(promises).then(() => { this.setState({busy: false}) });
@@ -318,6 +319,21 @@ export default class Factures extends React.Component {
     return res;
   }
 
+  hasPeriods(periods, hours) {
+    const month = this.state.currentMonth;
+    for (const day of Object.keys(hours)) {
+      const d = moment(day);
+      if (d.month() === month) {
+        for (const p of periods) {
+          if (p.range.contains(d)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   render() {
     if (this.state.busy) {
       return <img className="centered" src={spinner} />
@@ -361,7 +377,7 @@ export default class Factures extends React.Component {
             if (child.present === "0") { return "" }
             const childPeriods = this.childPeriods(childName, year);
             const childHours = this.state.childHours[childName] || {};
-            if (childPeriods.length === 0) { return <div>
+            if (! this.hasPeriods(childPeriods, childHours)) { return <div>
               <hr></hr>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation en heures de présence</h4></Col></Row>
               <Row><Col sm={12}>
