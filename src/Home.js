@@ -1,5 +1,5 @@
 import React from "react";
-import { Grid, Row, Col, Button } from 'react-bootstrap';
+import { Grid, Row, Col, Button, Glyphicon } from 'react-bootstrap';
 import { EditorState, ContentState, convertToRaw, convertFromRaw }  from "draft-js";
 import { Editor } from "react-draft-wysiwyg";
 import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
@@ -66,7 +66,9 @@ export default class HomePage extends React.Component {
       <Grid>
         { auth.admin() ? <Row>
           <Col xs={12}>
-            <Button bsStyle="primary" className="pull-right" disabled={!this.state.changed} onClick={this.save}>Enregistrer</Button>
+            <Button bsStyle="primary" className="pull-right" disabled={!this.state.changed} onClick={this.save}>
+              <Glyphicon glyph="save"/>Enregistrer
+            </Button>
           </Col>
         </Row> : null }
         <Row style={{ paddingTop: '10px' }}>

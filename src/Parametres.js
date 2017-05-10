@@ -313,20 +313,6 @@ class Parametres extends React.Component {
           <Col lg={12}>
             <Form horizontal>
               <FormGroup>
-                <Col sm={2} componentClass={ControlLabel}>
-                  Tarif plafond CAF
-                </Col>
-                <Col sm={4}>
-                  <Checkbox
-                    inputRef={c => {
-                        this.chkApplyCeiling = c;
-                      }}
-                    checked={this.state.applyCeiling}
-                    onChange={this.applyCeilingChanged}
-                  >Appliquer</Checkbox>
-                </Col>
-              </FormGroup>
-              <FormGroup>
                 <Col sm={2} componentClass={ControlLabel}>Heure ouverture</Col>
                 <Col sm={4}>
                   <TimePicker
@@ -444,7 +430,7 @@ class Parametres extends React.Component {
               disabled={!this.state.enableSave}
               onClick={this.save}
             >
-              Enregistrer
+              <Glyphicon glyph="save"/>{' '}Enregistrer
             </Button>
           </div>
         </Row>

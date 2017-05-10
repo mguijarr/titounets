@@ -506,10 +506,10 @@ export default class GestionContrat extends React.Component {
     return (
       <Grid>
         <Row>
-          <Col lg={12}>
-            <div className="pull-right" style={{marginTop: "15px", marginBottom:"15px"}}>
-              <div className="form-inline">
-                <label>Taux horaire</label>{'    '}
+          <Col lg={6}>
+            <div className="form-inline" style={{marginTop: "15px", marginBottom:"15px"}}>
+                <label>Taux horaire</label>
+                {'    '}
                 <FormControl
                   readOnly={!auth.admin()}
                   type="text"
@@ -518,14 +518,17 @@ export default class GestionContrat extends React.Component {
                 />
                 {'    '}
                 { auth.admin() ? <Checkbox checked={this.state.rate.CAF} onChange={this.CAFRateChanged}>Taux CAF</Checkbox> : "" }
-                { auth.admin() ? '    ' : "" }
+            </div>
+          </Col>
+          <Col lg={6}>
+            <div className="pull-right" style={{marginTop: "15px", marginBottom:"15px"}}>
                 <Button
                   bsStyle="primary"
                   disabled={(this.props.family.id < 0) || (! this.state.saveEnabled)}
                   onClick={() => {
                       this.savePeriods(this.props.family.id);
                   }}
-                >Enregistrer contrat</Button>
+                ><Glyphicon glyph="save"/>{' '}Enregistrer</Button>
                 {auth.admin() ? "    " : ""}
                 {auth.admin() ? <Button
                     bsStyle="primary"
@@ -533,8 +536,7 @@ export default class GestionContrat extends React.Component {
                     onClick={() => {
                         this.editContract(this.props.family.id);
                       }}
-                  >Editer contrat</Button> : ""}
-              </div>
+                  ><Glyphicon glyph="print"/>{' '}Imprimer</Button> : ""}
             </div>
           </Col>
         </Row>

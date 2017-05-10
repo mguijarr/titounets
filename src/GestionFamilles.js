@@ -385,7 +385,9 @@ class GestionFamilles extends React.Component {
                       bsStyle="primary"
                       disabled={!this.state.enableSave || !family.id || family.active==='0'}
                       onClick={this.saveData}
-                    >Enregistrer</Button>
+                    >
+                      <Glyphicon glyph="save"/>{' '}Enregistrer
+                    </Button>
                 </ButtonToolbar>
               </div>
             </Row>
