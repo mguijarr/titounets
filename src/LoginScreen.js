@@ -18,6 +18,7 @@ class LoginScreenComponent extends React.Component {
     this.etChanged = this.etChanged.bind(this);
     this.signIn = this.signIn.bind(this);
     this.loggedIn = this.loggedIn.bind(this);
+    this.handleKeyPress = this.handleKeyPress.bind(this);
   }
 
   etChanged(et) {
@@ -34,6 +35,12 @@ class LoginScreenComponent extends React.Component {
 
   signIn() {
     auth.login(this.state.currentEt, this.txtUsername.value, this.txtPassword.value, this.loggedIn);
+  }
+
+  handleKeyPress(target) {
+    if (target.charCode === 13) {
+      this.signIn();
+    }
   }
 
   componentDidMount() {
@@ -71,7 +78,7 @@ class LoginScreenComponent extends React.Component {
                   <FormControl type="text" placeholder="Nom d'utilisateur" inputRef={(ref)=>{this.txtUsername=ref}}/>
                 </FormGroup>
                 <FormGroup bsSize="large">
-                  <FormControl type="password" placeholder="Mot de passe" inputRef={(ref)=>{this.txtPassword=ref}}/>
+                  <FormControl type="password" placeholder="Mot de passe" inputRef={(ref)=>{this.txtPassword=ref}} onKeyPress={this.handleKeyPress}/>
                 </FormGroup>
                 <FormGroup bsSize="large">
                   <Button bsStyle="primary" block bsSize="large" onClick={this.signIn}>Se connecter</Button>
