@@ -17,3 +17,5 @@ npm-debug.log
 \#*\#
 static/*
 jspm_packages/*
+
+etablissements.cfg
