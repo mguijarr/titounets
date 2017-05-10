@@ -36,6 +36,7 @@ import {
 import ChildData from "./child.js";
 import GestionContrat from "./GestionContrat.js";
 import Factures from './Factures.js';
+import FacturesParents from './FacturesParents.js';
 import spinner from "./img/spinner.gif";
 
 class GestionFamilles extends React.Component {
@@ -478,7 +479,7 @@ class GestionFamilles extends React.Component {
     } else {
       contents = (
         <Col lg={12}>
-          <Factures family={family}/>
+          { auth.admin() ? <Factures family={family}/> : <FacturesParents family={family}/> }
         </Col>
       );
     }}

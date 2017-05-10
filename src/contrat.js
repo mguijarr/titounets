@@ -92,7 +92,7 @@ export default class Contract {
     return { periods, nMonths, nDays, nHours };
   }
 
-  getHoursBill(name, address, monthName, year, childName, hours, rate) {
+  getHoursBill(name, address, monthName, year, childName, hours, rate, billAmount) {
     const familyName = this.getFamilyName();
 
     const hoursTable = [];
@@ -106,7 +106,9 @@ export default class Contract {
       hoursTable.push([h.day, h.label1, h.label2, (b-a).toString(), rate, dayAmount.toFixed(2).toString()]);
     });
 
-    hoursTable.push(["", "", "", "", { text: "Total dû", bold: true }, { text: amount.toFixed(2).toString(), bold: true }]);
+    amount = amount.toFixed(2);
+    billAmount.toPay = amount;
+    hoursTable.push(["", "", "", "", { text: "Total dû", bold: true }, { text: amount.toString(), bold: true }]);
 
     return [
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
@@ -168,9 +170,10 @@ export default class Contract {
           }
       }, { width: '*', text: '' } ] }
     ]
+
   }
 
-  getBill(name, address, monthName, year, childName, nHours, rate, monthlyAmount, data) {
+  getBill(name, address, monthName, year, childName, nHours, rate, monthlyAmount, data, billAmount) {
     const familyName = this.getFamilyName();
     let nSHours = 0;
     let nDHours = 0;
@@ -188,6 +191,9 @@ export default class Contract {
         }
       }
     });
+
+    const amount = (parseFloat(monthlyAmount)+parseFloat(rate)*(nSHours - nDHours)).toFixed(2);
+    billAmount.toPay = amount;
 
     return [ 
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
@@ -248,7 +254,7 @@ export default class Contract {
             body: [ [ "Libellé", "Heures", "Taux horaire", "Total" ], ["Contrat", nHours, rate, monthlyAmount],
                     ["", "", "", ""], [{ text: "Heures venant en déduction", italics: true }, "", "", ""],  ...DHours,
                     ["", "", "", ""], [{ text: "Heures supplémentaires au contrat", italics: true }, "", "", ""], ...SHours,
-                    ["", "", "", ""], ["", "", { text: "Total dû", bold: true }, { text: (parseFloat(monthlyAmount)+parseFloat(rate)*(nSHours - nDHours)).toFixed(2).toString(), bold: true }]
+                    ["", "", "", ""], ["", "", { text: "Total dû", bold: true }, { text: amount.toString(), bold: true }]
                   ]
           }
       }, { width: '*', text: '' } ]

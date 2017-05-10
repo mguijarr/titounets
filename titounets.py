@@ -120,11 +120,11 @@ def extract_family_data(db, username):
       family["CAFrate"] = bool(family["CAFrate"] == "True")
     return family
 
-def extract_families(db):
+def extract_families(db, et):
     families = []
 
     for k in db.scan_iter(): #keys('*'):
-      if k == 'admin' or k.startswith('session:') or k.startswith("parameters") or k.startswith("homepage") or k.endswith("hours") or k.endswith("bills"):
+      if k in et['admins'] or k.startswith('session:') or k.startswith("parameters") or k.startswith("homepage") or k.endswith("hours") or k.endswith("bills") or 'archivedBills' in k:
         continue
       if not ':children:' in k:
         families.append(extract_family_data(db, k))
@@ -136,9 +136,9 @@ def get_families():
     if not session.get('admin'):
       return make_response("", 401)
 
-    db, _ = get_db_et(session["etablissement"])
+    db, et = get_db_et(session["etablissement"])
     
-    return jsonify(extract_families(db))
+    return jsonify(extract_families(db, et))
 
 @app.route("/api/children/<date>", methods=["GET"])
 def get_children(date):
@@ -274,7 +274,7 @@ def set_children_periods(username):
 def del_family():
     if not session.get('admin'):
       return make_response("", 401)   
-    db, _ = get_db_et(session["etablissement"])
+    db, et = get_db_et(session["etablissement"])
     
     content = request.get_json()
     username = content["username"]
@@ -284,7 +284,7 @@ def del_family():
         p.delete(x)
       p.execute()
 
-    return jsonify(extract_families(db))
+    return jsonify(extract_families(db, et))
 
 @app.route("/api/delchild", methods=["POST"])
 def del_child():
@@ -452,7 +452,7 @@ def get_calendar():
   db, _ = get_db_et(session["etablissement"])
 
 @app.route("/api/bills/<username>", methods=["GET"])
-def get_bills(username):
+def get_bills_data(username):
     if not session.get('admin') and session.get("username") != username:
         return make_response("", 401)
 
@@ -528,6 +528,60 @@ def get_editor_contents():
   db, _ = get_db_et(session["etablissement"])
  
   return jsonify(ast.literal_eval(db.get("homepage")) or {})
+
+@app.route("/api/bills/<username>/submit", methods=["POST"])
+def submit_bill(username):
+  if not session.get("admin"):
+     return make_response("", 401)
+
+  db, _ = get_db_et(session["etablissement"])
+
+  content = request.get_json()
+  month = content["month"]
+  year = int(content["year"])  
+  data = content["data"]
+  key = "%s:archivedBills:%d:%s" % (username, year, month)
+
+  with db.pipeline() as p:
+    db.hset(key, "data", content["data"])
+    db.hset(key, "paid", "0")
+    db.hset(key, "amount", content["amount"])
+    p.execute()
+ 
+  return make_response("", 200)
+
+@app.route("/api/bills/<username>/list", methods=["GET"])
+def get_bills_list(username):
+  if not session.get('admin') and session.get("username") != username:
+    return make_response("", 401)
+
+  db, _ = get_db_et(session["etablissement"])
+
+  keys = "%s:archivedBills:*" % username
+
+  archived_bills = dict()
+  for k in db.scan_iter(match=keys):
+    try:
+       year, month = k.split(":")[-2:]
+    except Exception:
+      continue
+    else:
+      year = int(year)
+    archived_bills.set_default(year, {})[month] = db.hgetall(k)
+    bill = archived_bills[year][month]
+    data = bill.pop("data")
+    bill["data"] = ast.literal_eval(data)
+
+  years = archived_bills.keys()
+  years.sort()
+  ret = list()
+  for year in years:
+    ret.append({ "year": year, "months": [] })
+    for month, bill in archived_bills[year].iteritems():
+      ret[-1]["months"].append({ "month": month, "data": bill["data"], "paid": bill["paid"], "amount": bill["amount"] })
+
+  return jsonify(ret)
+
 
 if __name__ == '__main__':
   app.run(host="0.0.0.0", port=5000)

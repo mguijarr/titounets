@@ -12,6 +12,8 @@ import {
 import Moment from "moment";
 import { extendMoment } from "moment-range";
 import _DatePicker from "react-bootstrap-date-picker";
+import "../node_modules/pdfmake/build/pdfmake.min.js";
+import "../node_modules/pdfmake/build/vfs_fonts.js";
 
 const moment = extendMoment(Moment);
 
@@ -376,3 +378,21 @@ export const DatePicker = (prop) => (
                     }
                     dateFormat="DD/MM/YYYY" {...prop}/>
 );
+
+export function downloadBill(content) {
+  let docDefinition = {
+      content,
+      styles: {
+        title: { fontSize: 16, bold: true, alignment: "center" },
+        centered: { alignment: "center" },
+        bigTitle: { fontSize: 20, bold: true, alignment: "center" },
+        marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
+      },
+      defaultStyle: { fontSize: 10 },
+      pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
+        return currentNode.startPosition.top >= 750;
+      }
+  }
+
+  if (content.length > 0) { pdfMake.createPdf(docDefinition).download(); }
+}

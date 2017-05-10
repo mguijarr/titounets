@@ -30,10 +30,9 @@ import {
   parseJSON,
   findDays,
   formatHour,
-  DatePicker
+  DatePicker,
+  downloadBill
 } from "./utils";
-import "../node_modules/pdfmake/build/pdfmake.min.js";
-import "../node_modules/pdfmake/build/vfs_fonts.js";
 import Contract from "./contrat";
 import spinner from "./img/spinner.gif";
 
@@ -56,7 +55,8 @@ export default class Factures extends React.Component {
       changed: false,
       childHours: {},
       periods: {},
-      rate: {}
+      rate: {},
+      showSubmitBill: false
     };
 
     this.addLine = this.addLine.bind(this);
@@ -71,6 +71,8 @@ export default class Factures extends React.Component {
     this.adjustHour = this.adjustHour.bind(this);
     this.getChildHours = this.getChildHours.bind(this);
     this.hasPeriods = this.hasPeriods.bind(this);
+    this.makeBill = this.makeBill.bind(this);
+    this.submitBill = this.submitBill.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -179,7 +181,21 @@ export default class Factures extends React.Component {
     return childPeriods;
   }
 
+  submitBill(month) {
+    const bill = this.makeBill(month);
+
+    alert(bill.billAmount.toPay);
+
+    this.setState({ showSubmitBill: false });
+  }
+
   editBill(month) {
+    const bill = this.makeBill(month); 
+
+    downloadBill(bill.content);
+  }
+ 
+  makeBill(month) {
     const bill = new Contract(this.props.family);
     const monthName = month.format("MMMM");
     const params = this.state.parameters;
@@ -188,6 +204,7 @@ export default class Factures extends React.Component {
     address.email = params.email;
     const content = [];
     const rate = Number(this.state.rate.rate || bill.calcRate().rate).toFixed(2);
+    const billAmount = {};
 
     // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
     Object.keys(this.props.family.children).map(childName => {
@@ -201,7 +218,7 @@ export default class Factures extends React.Component {
           const childHours = this.getChildHours(childName);
           if (childHours.length > 0) {
             content.push(
-              ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate)
+              ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate, billAmount)
             );
           }     
         } else {
@@ -226,26 +243,13 @@ export default class Factures extends React.Component {
           });
           
           content.push(
-            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, monthlyAmount, data)
+            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, monthlyAmount, data, billAmount)
           );
         }
       }
     });
 
-    let docDefinition = {
-      content,
-      styles: {
-        title: { fontSize: 16, bold: true, alignment: "center" },
-        centered: { alignment: "center" },
-        bigTitle: { fontSize: 20, bold: true, alignment: "center" },
-        marginTop: 20, marginBottom: 20, marginLeft: 20, marginRight: 20
-      },
-      defaultStyle: { fontSize: 10 },
-      pageBreakBefore: (currentNode, followingNodesOnPage, nodesOnNextPage, previousNodesOnPage) => {
-        return currentNode.startPosition.top >= 750;
-      }
-    }
-    if (content.length > 0) { pdfMake.createPdf(docDefinition).download(); }
+    return { content, billAmount };
   }
 
   adjustHour(h, d) {
@@ -365,20 +369,33 @@ export default class Factures extends React.Component {
             </Col>
             <Col sm={9}>
               <ButtonToolbar className="pull-right">
-                <Button bsStyle="primary" disabled={!this.state.changed} onClick={this.save}>Enregistrer</Button> 
-                <Button bsStyle="primary" onClick={()=>this.editBill(months[this.state.currentMonth])}>Editer facture</Button>
+                <Button bsStyle="primary" disabled={!this.state.changed} onClick={this.save}>
+                  <Glyphicon glyph="save"/>{' '}Enregistrer
+                </Button> 
+                <Button bsStyle="primary" onClick={()=>this.editBill(months[this.state.currentMonth])}>
+                  <Glyphicon glyph="print"/>{' '}Imprimer
+                </Button>
+              </ButtonToolbar>
+            </Col>
+          </FormGroup>
+          <FormGroup>
+            <Col sm={12}>
+              <ButtonToolbar className="pull-right">
+                <Button bsStyle="primary" onClick={()=>this.setState({ showSubmitBill: true })}>
+                  <Glyphicon glyph="piggy-bank"/>{' '}Soumettre
+                </Button>
               </ButtonToolbar>
             </Col>
           </FormGroup>
         </Form>
-        <p>{' '}</p><p>{' '}</p>
+        <hr />
         {Object.keys(this.props.family.children).map((childName, i) => {
             const child = this.props.family.children[childName];
             if (child.present === "0") { return "" }
             const childPeriods = this.childPeriods(childName, year);
             const childHours = this.state.childHours[childName] || {};
             if (! this.hasPeriods(childPeriods, childHours)) { return <div>
-              <hr></hr>
+              <p></p>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation en heures de présence</h4></Col></Row>
               <Row><Col sm={12}>
               <Table striped bordered condensed hover>
@@ -401,7 +418,7 @@ export default class Factures extends React.Component {
             bills[currentMonthName][childName] = bills[currentMonthName][childName] || [{ hours: "", desc: "" }];
             const bill = bills[currentMonthName][childName];
             return child.present === "0" ? "" : <div>
-              <hr></hr>
+              <p></p>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation au contrat</h4></Col></Row>
               <Row><Col sm={12}><h5>1. report automatique des heures supplémentaires realisées</h5></Col></Row>
               <Row><Col sm={12}>
@@ -457,6 +474,22 @@ export default class Factures extends React.Component {
               </Form>)}
               </Row>
             </div>} }) }
+            <Modal show={this.state.showSubmitBill} onHide={()=>this.setState({showSubmitBill: false})}>
+              <Modal.Header closeButton>
+                <Modal.Title>Soumettre facture</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                Etes-vous sûr d'envoyer l'ordre de paiement ?
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  onClick={()=>this.setState({showSubmitBill: false})}
+                >Annuler</Button>
+                <Button bsStyle="primary"
+                  onClick={()=>this.submitBill(months[this.state.currentMonth])}
+                >Confirmer</Button>
+              </Modal.Footer>
+           </Modal>
       </Grid>
     );
   }
