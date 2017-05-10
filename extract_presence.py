@@ -4,6 +4,7 @@ import sys
 import redis
 import os
 import editdistance
+from collections import OrderedDict
 
 REDIS_PASSWORD = file(os.path.join(os.path.dirname(__file__), "redis.passwd"), "r").read()
 REDIS_PASSWORD = REDIS_PASSWORD.strip()
@@ -27,17 +28,17 @@ def convert_time(hhmm):
   return hh+mm/60.
 
 def extract_presence(filename):
-  dates = {}
+  dates = OrderedDict() 
   children = []
   
   with open(sys.argv[1],"r") as csvfile:
     r = csv.reader(csvfile)
 
     rows = list(r)
-    day_start = 9
-    
+    day_start = 1
+ 
     for j, field in enumerate(rows[1]):
-      i = j
+      i = j 
       if i == day_start:
         if not field:
           day_start+=1
@@ -46,17 +47,22 @@ def extract_presence(filename):
         if field == "A LA DEMI HEURE":
           break
         day_start += 4
+        if "," in field:
+          field = field.split(",")[-1]
+        print field
         try:
-            d,m,y = field.split(",")[-1].split()
+            dd,d,m,y = field.split()
         except ValueError:
             try:
-                dd,d,m,y = field.split(",")[-1].split()
+              d,m,y = field.split()
             except ValueError:
-                break
+              d,m = field.split()
+              y = 2017
         y = int(y)
         if y < 2000:
           y += 2000
         dates[i]=(int(d),months[m.upper()],y)
+    print dates
 
     for row in rows[3:]:
       fields = list(row)
@@ -141,7 +147,6 @@ if __name__ == '__main__':
     print key+" ",
     for presence in child["presence"]:
       print presence["date"]
-    hours = dict()
     for presence in child["presence"]:
       db_connection.hset(key+":hours", presence["date"], presence["hours"])
 
