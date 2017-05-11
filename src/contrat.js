@@ -409,7 +409,14 @@ export default class Contract {
       },
       " ",
       { text: `Tarif mensuel: ${monthlyAmount} euros`, style: "title" },
-      " ",
+      " ", " ",
+      {
+        text: 'Ce contrat sera révisé avec la famille:' }, " ",
+      { text: '- en début de chaque année civile' },
+      { text: "- lors d'une naissance dans la famille" },
+      { text: "- ou bien si les horaires demandés ne conviennent plus pour des raisons professionnelles." }, " ",
+      { text: "La direction se réserve le droit de réviser le contrat unilatéralement si les heures demandées sont systématiquement dépassées ; en outre, chaque demi-heure commencée est comptabilisée. Les heures réalisées au-delà du contrat prévu sont arrondies à la demi-heure 'cadran'." },
+      " ", " ",
       {
         text: `Fait à ${address.city} le ${this.today}.`,
         style: "centered"
