@@ -10,6 +10,7 @@ import Home from "./Home";
 import Parametres from "./Parametres";
 import GestionFamilles from "./GestionFamilles";
 import Heures from "./Heures";
+import CAF from "./CAF";
 
 function requireAuth(nextState, replace) {
   if (!auth.loggedIn()) {
@@ -29,6 +30,7 @@ const render = () => {
         <Route path="parametres" component={Parametres} />
         <Route path="gestion" component={GestionFamilles} />
         <Route path="heures" component={Heures} />
+        <Route path="recap" component={CAF} />
       </Route>
     </Router>,
     document.getElementById("app")

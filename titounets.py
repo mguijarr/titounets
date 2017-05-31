@@ -85,6 +85,16 @@ def logout():
     session.clear()
     return make_response("", 200)
 
+def _get_child_data(db, username, child_name):
+    child_name = child_name.replace(" ", "_")
+    k = "%s:children:%s" % (username, child_name)
+    child_data = db.hgetall(k) 
+    if bool(int(child_data.get("present", "1"))):
+        child_data["present"] = "1"
+    else:
+        child_data["present"] = "0"
+    return child_data
+
 def extract_family_data(db, username):
     db, _ = get_db_et(session["etablissement"])
     family = db.hgetall(username)
@@ -94,12 +104,8 @@ def extract_family_data(db, username):
     for k in db.scan_iter(match="%s:children:*" % username):
         if 'periods' in k or 'hours' in k:
             continue
-        child_name = k.split(":")[-1].replace(" ", "_")
-        family["children"][child_name] = db.hgetall(k)
-        if bool(int(family["children"][child_name].get("present", "1"))):
-          family["children"][child_name]["present"] = "1"
-        else:
-          family["children"][child_name]["present"] = "0"
+        child_name = k.split(":")[-1].replace("_", " ")
+        family["children"][child_name] = _get_child_data(db, username, child_name)
 
     try:
         family.pop("password")
@@ -208,13 +214,7 @@ def set_child_hours():
 
     return make_response("", 200)
 
-
-@app.route("/api/childHours/<username>", methods=["GET"])
-def get_child_hours(username):
-    if not session.get('admin') and session.get("username") != username:
-        return make_response("", 401)
- 
-    db, _ = get_db_et(session["etablissement"])
+def _get_children_hours(db, username):
     ret = {}
 
     for k in db.scan_iter(match="%s:children:*:hours" % username):
@@ -224,25 +224,33 @@ def get_child_hours(username):
           hoursString = ret[childName][day]
           hours = map(float, ast.literal_eval(hoursString))
           ret[childName][day] = hours
+    return ret
 
-    return jsonify(ret)
-        
+@app.route("/api/childrenHours/<username>", methods=["GET"])
+def get_children_hours(username):
+    if not session.get('admin') and session.get("username") != username:
+        return make_response("", 401)
+    db, _ = get_db_et(session["etablissement"])
+ 
+    return jsonify(_get_children_hours(db, username))
+
+def _get_children_periods(db, username):
+   family = extract_family_data(db, username)
+   res = { "rate": { "CAF": family["CAFrate"], "rate": family["rate"] } }
+   periods = {}
+   res["periods"] = periods
+   for child_name, c in family['children'].iteritems():
+       if not bool(int(c.get("present", "1"))):
+         continue
+       key = "%s:children:%s:periods" % (username, child_name.replace(" ", "_")) 
+       periods[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
+   return res
 
 @app.route("/api/periods/<username>", methods=["GET"])
 def get_children_periods(username):
-    db, _ = get_db_et(session["etablissement"])
     if session.get('admin') or session.get("username") == username:
-        family = extract_family_data(db, username)
-        res = { "rate": { "CAF": family["CAFrate"], "rate": family["rate"] } }
-        periods = {}
-        res["periods"] = periods
-        for child_name, c in family['children'].iteritems():
-           if not bool(int(c.get("present", "1"))):
-             continue
-           key = "%s:children:%s:periods" % (username, child_name.replace(" ", "_")) 
-           periods[c["name"]] = map(json.loads, db.lrange(key, 0, -1)) or []
-
-        return jsonify(res)
+        db, _ = get_db_et(session["etablissement"])
+        return jsonify(_get_children_periods(db, username))
     else:
         return make_response("", 401)
 
@@ -581,6 +589,30 @@ def get_bills_list(username):
       ret[-1]["months"].append({ "month": month, "data": bill["data"], "paid": bill["paid"], "amount": bill["amount"] })
 
   return jsonify(ret)
+
+@app.route("/api/childrenHoursPeriods", methods=["GET"])
+def get_children_hours_periods():
+  if not session.get('admin'):
+    return make_response("", 401)
+  
+  db, _ = get_db_et(session["etablissement"])
+  ret = dict()
+  families = set()
+
+  for k in db.scan_iter(match="*"):
+    if ":children"  in k:
+      username = k.split(":")[0]
+      families.add(username)
+
+  for username in families:
+    if db.hget(username, "active") != '0':
+      p = _get_children_periods(db, username)["periods"]
+      h = _get_children_hours(db, username)
+      for child in h.iterkeys():
+        d = _get_child_data(db, username, child)
+        ret[username] = { child: { 'periods': p.get(child, []), 'hours': h[child], 'data': d } }
+
+  return jsonify(ret)      
 
 
 if __name__ == '__main__':

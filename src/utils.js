@@ -396,3 +396,89 @@ export function downloadBill(content) {
 
   if (content.length > 0) { pdfMake.createPdf(docDefinition).download(); }
 }
+
+function adjustHour(h, d, opening, closing) {
+    const _opening = Number(opening);
+    const _closing = Number(closing);
+    let H = 0;
+    d = d || 1;
+    if (d < 0) {
+      H = Math.floor(h);
+      if ((h - H) > 0.5) { H+=0.5; }
+    } else {
+      H = Math.ceil(h);
+      if ((H - h) > 0.5) { H-=0.5; }
+    }
+    if (H < _opening) { H = _opening; }
+    if (H > _closing) { H = _closing; }
+    return H;
+}
+
+export function getHours(childHours, periods, month, year, opening, closing, hoursRef) {
+    const res = [];
+    hoursRef.done = 0;
+    hoursRef.paid = 0;
+    Object.keys(childHours).forEach((day) => {
+      const hours = childHours[day];
+      const m = moment(day, "YYYY-MM-DD");
+      if ((m.year() === Number(year) && (m.month() === Number(month)))) {
+        hoursRef.done += hours[1]-hours[0];
+        if (periods.length > 0) {
+          for (let p of periods) {
+            if (p.range.contains(m)) {
+              const contractHours = p.timetable[m.day()];
+              if (contractHours === null) {
+                const h1 = formatHour(hours[0]*60);
+                const h2 = formatHour(hours[1]*60);
+                const arriving = adjustHour(hours[0], -1, opening, closing);
+                const leaving = adjustHour(hours[1], 1, opening, closing);
+                hoursRef.paid += leaving - arriving;
+                const a = formatHour(60*arriving);
+                const d = formatHour(60*leaving);
+                res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving });
+              } else {
+                let skip = true;
+                let arriving = contractHours[0]*60;
+                let leaving = contractHours[1]*60;
+                const c1 = formatHour(arriving);
+                const c2 = formatHour(leaving);
+                //console.log("c1 "+c1+", c2 "+c2);
+                const h1 = formatHour(hours[0]*60);
+                const h2 = formatHour(hours[1]*60);
+                //console.log("h1 "+h1+", h2 "+h2);
+                if (((hours[0]*60) - arriving) < -5) {
+                  arriving = 60*adjustHour(hours[0], -1, opening, closing);
+                  skip = false;
+                }
+                if (((hours[1]*60) - leaving) > 5) {
+                  leaving = 60*adjustHour(hours[1], 1, opening, closing);
+                  skip = false;
+                }
+                hoursRef.paid += (leaving - arriving)/60.;
+                if (! skip) {
+                  const a = formatHour(arriving);
+                  const d = formatHour(leaving);
+                  arriving = arriving/60.
+                  leaving = leaving/60.
+                  res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), contrat: ${c1}`, arriving, label2: `${d} (${h2}), contrat: ${c2}`, leaving, contractHours });
+                } 
+              }
+              break;
+            }
+          }
+        } else {
+          const h1 = formatHour(hours[0]*60);
+          const h2 = formatHour(hours[1]*60);
+          const arriving = adjustHour(hours[0], -1, opening, closing);
+          const leaving = adjustHour(hours[1], 1, opening, closing);
+          const a = formatHour(60*arriving);
+          const d = formatHour(60*leaving);
+          hoursRef.paid += leaving - arriving;
+          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving });
+        }
+      }
+    });
+    //console.log(res);
+    return res;
+}
+

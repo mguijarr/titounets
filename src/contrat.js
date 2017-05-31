@@ -173,8 +173,9 @@ export default class Contract {
 
   }
 
-  getBill(name, address, monthName, year, childName, nHours, rate, monthlyAmount, data, billAmount) {
+  getBill(name, address, monthName, year, childName, nHours, rate, data, billAmount) {
     const familyName = this.getFamilyName();
+    const monthlyAmount = (rate * nHours).toFixed(2);
     let nSHours = 0;
     let nDHours = 0;
     const SHours = [];

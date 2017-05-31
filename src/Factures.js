@@ -30,6 +30,7 @@ import {
   parseJSON,
   findDays,
   formatHour,
+  getHours,
   DatePicker,
   downloadBill
 } from "./utils";
@@ -53,7 +54,7 @@ export default class Factures extends React.Component {
       bills: {},
       parameters: {},
       changed: false,
-      childHours: {},
+      childrenHours: {},
       periods: {},
       rate: {},
       showSubmitBill: false
@@ -68,7 +69,6 @@ export default class Factures extends React.Component {
     this.getData = this.getData.bind(this);
     this.editBill = this.editBill.bind(this);
     this.childPeriods = this.childPeriods.bind(this);
-    this.adjustHour = this.adjustHour.bind(this);
     this.getChildHours = this.getChildHours.bind(this);
     this.hasPeriods = this.hasPeriods.bind(this);
     this.makeBill = this.makeBill.bind(this);
@@ -88,12 +88,12 @@ export default class Factures extends React.Component {
   getData(familyId) {
     this.setState({ busy: true });
 
-    const promises = [fetch("/api/childHours/" + familyId, {
+    const promises = [fetch("/api/childrenHours/" + familyId, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
-    }).then(checkStatus).then(parseJSON).then(childHours => {
-      this.setState({ childHours });
+    }).then(checkStatus).then(parseJSON).then(childrenHours => {
+      this.setState({ childrenHours });
     }),
     fetch("/api/periods/" + familyId, {
       method: "GET",
@@ -224,7 +224,6 @@ export default class Factures extends React.Component {
         } else {
           const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); //this.state.contractRange);
           const hoursByMonth = (nHours / nMonths).toFixed(2); 
-          const monthlyAmount = (rate * hoursByMonth).toFixed(2);
 
           const data = [];
 
@@ -243,7 +242,7 @@ export default class Factures extends React.Component {
           });
           
           content.push(
-            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, monthlyAmount, data, billAmount)
+            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, data, billAmount)
           );
         }
       }
@@ -252,75 +251,10 @@ export default class Factures extends React.Component {
     return { content, billAmount };
   }
 
-  adjustHour(h, d) {
-    const opening = Number(this.state.parameters.opening);
-    const closing = Number(this.state.parameters.closing);
-    let H = 0;
-    d = d || 1;
-    if (d < 0) {
-      H = Math.floor(h);
-      if ((h - H) > 0.5) { H+=0.5; }
-    } else {
-      H = Math.ceil(h);
-      if ((H - h) > 0.5) { H-=0.5; }
-    }
-    if (H < opening) { H = opening; }
-    if (H > closing) { H = closing; }
-    return H;
-  }
 
   getChildHours(childName, periods) {
-    const childHours = this.state.childHours[childName] || {};
-    const res = [];
-    Object.keys(childHours).forEach((day) => {
-      const hours = childHours[day];
-      const m = moment(day, "YYYY-MM-DD");
-      if ((m.year() === this.state.year) && (m.month() === this.state.currentMonth)) {
-        if (periods != undefined) {
-          for (let p of periods) {
-            if (p.range.contains(m)) {
-              const contractHours = p.timetable[m.day()];
-              if (contractHours === null) { break; }
-              let skip = true;
-              let arriving = contractHours[0]*60;
-              let leaving = contractHours[1]*60;
-              const c1 = formatHour(arriving);
-              const c2 = formatHour(leaving);
-              //console.log("c1 "+c1+", c2 "+c2);
-              const h1 = formatHour(hours[0]*60);
-              const h2 = formatHour(hours[1]*60);
-              //console.log("h1 "+h1+", h2 "+h2);
-              if (((hours[0]*60) - arriving) < -5) {
-                arriving = 60*this.adjustHour(hours[0], -1);
-                skip = false;
-              }
-              if (((hours[1]*60) - leaving) > 5) {
-                leaving = 60*this.adjustHour(hours[1]);
-                skip = false;
-              }
-              if (! skip) { 
-                const a = formatHour(arriving);
-                const d = formatHour(leaving);
-                arriving = arriving/60.
-                leaving = leaving/60.
-                res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), contrat: ${c1}`, arriving, label2: `${d} (${h2}), contrat: ${c2}`, leaving, contractHours });
-              }
-              break;
-            } 
-          } 
-        } else {
-          const h1 = formatHour(hours[0]*60);
-          const h2 = formatHour(hours[1]*60);
-          const arriving = this.adjustHour(hours[0], -1);
-          const leaving = this.adjustHour(hours[1]);
-          const a = formatHour(60*arriving);
-          const d = formatHour(60*leaving);
-          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving });
-        }
-      }
-    });
-    //console.log(res);
-    return res;
+    const childHours = this.state.childrenHours[childName] || {};
+    return getHours(childHours, periods, this.state.currentMonth, this.state.year, this.state.parameters.opening, this.state.parameters.closing, {});
   }
 
   hasPeriods(periods, hours) {
@@ -393,8 +327,8 @@ export default class Factures extends React.Component {
             const child = this.props.family.children[childName];
             if (child.present === "0") { return "" }
             const childPeriods = this.childPeriods(childName, year);
-            const childHours = this.state.childHours[childName] || {};
-            if (! this.hasPeriods(childPeriods, childHours)) { return <div>
+            const childHours = this.state.childrenHours[childName] || {};
+            if (! this.hasPeriods(childPeriods, childHours)) { return <div key={i}>
               <p></p>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation en heures de présence</h4></Col></Row>
               <Row><Col sm={12}>
@@ -407,7 +341,7 @@ export default class Factures extends React.Component {
                   </tr>
                 </thead>
                 <tbody>
-                  {this.getChildHours(childName).map(h => {
+                  {this.getChildHours(childName, []).map(h => {
                       return <tr><th>{h.day}</th><th>{h.label1}</th><th>{h.label2}</th></tr>
                   })}
                 </tbody>

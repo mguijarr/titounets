@@ -14,6 +14,7 @@ import { Link, withRouter } from "react-router";
 import girl from "./img/girl.svg";
 import abacus from "./img/abacus.svg";
 import puzzle from "./img/puzzle.svg";
+import caf from "./img/caf.svg";
 
 class MainApp extends React.Component {
   constructor(props) {
@@ -43,11 +44,14 @@ class MainApp extends React.Component {
             <LinkContainer to="/gestion">
               <NavItem eventKey={1}>
                 <img src={girl} style={{width: '48px', height: 'auto'}}/>
-                {auth.admin() ? "Gestion Familles" : "Gestion"}
+                {auth.admin() ? "Familles" : "Gestion"}
               </NavItem>
             </LinkContainer>
             {auth.admin() ? <LinkContainer to="/heures">
                   <NavItem eventKey={3}><img src={abacus} style={{width: '48px', height: 'auto'}}/>{' '}Heures réalisées</NavItem>
+                </LinkContainer> : ""}
+            {auth.admin() ? <LinkContainer to="/recap">
+                  <NavItem eventKey={3}><img src={caf} style={{width: '48px', height: 'auto'}}/>{' '}CAF</NavItem>
                 </LinkContainer> : ""}
           </Nav>
           <Navbar.Form pullRight style={{ paddingTop: '7px' }}>
