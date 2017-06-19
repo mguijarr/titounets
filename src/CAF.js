@@ -118,6 +118,7 @@ export default class CAF extends React.Component {
         months.push(m.format("MMMM YYYY"));
         this.state.children.forEach((c,i) => {
           const tmp = {};
+          if (c.data.surname ==="COLIN") { debugger;}
           getHours(c.hours, c.periods, m.month(), 2017, this.state.openingHours[0], this.state.openingHours[1], tmp);
           hours[i][j]=tmp.done.toFixed(2);
           hours[i][j+1]=tmp.paid.toFixed(2);

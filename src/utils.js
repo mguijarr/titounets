@@ -420,59 +420,53 @@ export function getHours(childHours, periods, month, year, opening, closing, hou
     hoursRef.paid = 0;
     Object.keys(childHours).forEach((day) => {
       const hours = childHours[day];
+      const h1 = formatHour(hours[0]*60);
+      const h2 = formatHour(hours[1]*60);
       const m = moment(day, "YYYY-MM-DD");
       if ((m.year() === Number(year) && (m.month() === Number(month)))) {
         hoursRef.done += hours[1]-hours[0];
-        if (periods.length > 0) {
+        let arriving = adjustHour(hours[0], -1, opening, closing);
+        let leaving = adjustHour(hours[1], 1, opening, closing);
+        let a = formatHour(60*arriving);
+        let d = formatHour(60*leaving);
+        if ((periods != undefined) && (periods.length > 0)) {
           for (let p of periods) {
             if (p.range.contains(m)) {
               const contractHours = p.timetable[m.day()];
               if (contractHours === null) {
-                const h1 = formatHour(hours[0]*60);
-                const h2 = formatHour(hours[1]*60);
-                const arriving = adjustHour(hours[0], -1, opening, closing);
-                const leaving = adjustHour(hours[1], 1, opening, closing);
+                // hors contrat: child present but not in contract timetable for period
                 hoursRef.paid += leaving - arriving;
-                const a = formatHour(60*arriving);
-                const d = formatHour(60*leaving);
                 res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving });
+                return res;
               } else {
                 let skip = true;
-                let arriving = contractHours[0]*60;
-                let leaving = contractHours[1]*60;
-                const c1 = formatHour(arriving);
-                const c2 = formatHour(leaving);
+                arriving = contractHours[0];
+                leaving = contractHours[1];
+                const c1 = formatHour(arriving*60);
+                const c2 = formatHour(leaving*60);
                 //console.log("c1 "+c1+", c2 "+c2);
-                const h1 = formatHour(hours[0]*60);
-                const h2 = formatHour(hours[1]*60);
-                //console.log("h1 "+h1+", h2 "+h2);
-                if (((hours[0]*60) - arriving) < -5) {
-                  arriving = 60*adjustHour(hours[0], -1, opening, closing);
+                if ((hours[0] - arriving) < (-5/60)) {
+                  arriving = adjustHour(hours[0], -1, opening, closing);
                   skip = false;
                 }
-                if (((hours[1]*60) - leaving) > 5) {
-                  leaving = 60*adjustHour(hours[1], 1, opening, closing);
+                if ((hours[1] - leaving) > (5/60)) {
+                  leaving = adjustHour(hours[1], 1, opening, closing);
                   skip = false;
                 }
-                hoursRef.paid += (leaving - arriving)/60.;
+                hoursRef.paid += leaving - arriving;
                 if (! skip) {
-                  const a = formatHour(arriving);
-                  const d = formatHour(leaving);
-                  arriving = arriving/60.
-                  leaving = leaving/60.
+                  a = formatHour(60*arriving);
+                  d = formatHour(60*leaving);
                   res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), contrat: ${c1}`, arriving, label2: `${d} (${h2}), contrat: ${c2}`, leaving, contractHours });
                 } 
+                return res;
               }
-              break;
             }
-          }
+          } 
+          // hors contrat: child present but not in a period 
+          hoursRef.paid += leaving - arriving;
+          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving });
         } else {
-          const h1 = formatHour(hours[0]*60);
-          const h2 = formatHour(hours[1]*60);
-          const arriving = adjustHour(hours[0], -1, opening, closing);
-          const leaving = adjustHour(hours[1], 1, opening, closing);
-          const a = formatHour(60*arriving);
-          const d = formatHour(60*leaving);
           hoursRef.paid += leaving - arriving;
           res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving });
         }

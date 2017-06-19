@@ -229,18 +229,29 @@ export default class Factures extends React.Component {
 
           const childHours = this.getChildHours(childName, childPeriods);
           childHours.forEach((x) => {
-            const c1 = Number(x.contractHours[0]);
-            const c2 = Number(x.contractHours[1]);
+            let cmsg = "";
+            let c1 = 0;
+            let c2 = 0;
+            if (x.contractHours === undefined) {
+              cmsg = " (hors contrat)";
+            } else {
+              c1 = Number(x.contractHours[0]);
+              c2 = Number(x.contractHours[1]);
+              cmsg = " (contrat: "+formatHour(60*c1)+"->"+formatHour(60*c2)+")";
+            }
             const h1 = Number(x.arriving);
             const h2 = Number(x.leaving);
             const hs = h2-c2+c1-h1;
-            data.push({ desc: x.day+", "+formatHour(x.arriving*60)+"->"+formatHour(x.leaving*60)+" (contrat: "+formatHour(c1*60)+"->"+formatHour(c2*60)+")", hours: hs.toFixed(2) }); 
+            data.push({ desc: x.day+", "+formatHour(x.arriving*60)+"->"+formatHour(x.leaving*60)+cmsg, hours: hs.toFixed(2) }); 
           });
 
-          this.state.bills[month.year()][monthName][childName].forEach((d) => {
-            data.push(d);
-          });
-          
+          const bills = this.state.bills[month.year()][monthName][childName]; 
+          if (bills != undefined) {
+            bills.forEach((d) => {
+              data.push(d);
+            });
+          }
+
           content.push(
             ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, data, billAmount)
           );
