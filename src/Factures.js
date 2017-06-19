@@ -229,16 +229,9 @@ export default class Factures extends React.Component {
 
           const childHours = this.getChildHours(childName, childPeriods);
           childHours.forEach((x) => {
-            let cmsg = "";
-            let c1 = 0;
-            let c2 = 0;
-            if (x.contractHours === undefined) {
-              cmsg = " (hors contrat)";
-            } else {
-              c1 = Number(x.contractHours[0]);
-              c2 = Number(x.contractHours[1]);
-              cmsg = " (contrat: "+formatHour(60*c1)+"->"+formatHour(60*c2)+")";
-            }
+            const c1 = Number(x.contractHours[0]);
+            const c2 = Number(x.contractHours[1]);
+            const cmsg = (c1+c2 > 0) ?  "(contrat: "+formatHour(60*c1)+"->"+formatHour(60*c2)+")" : " (hors contrat)"; 
             const h1 = Number(x.arriving);
             const h2 = Number(x.leaving);
             const hs = h2-c2+c1-h1;
@@ -251,7 +244,7 @@ export default class Factures extends React.Component {
               data.push(d);
             });
           }
-
+          
           content.push(
             ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, data, billAmount)
           );

@@ -404,10 +404,10 @@ function adjustHour(h, d, opening, closing) {
     d = d || 1;
     if (d < 0) {
       H = Math.floor(h);
-      if ((h - H) > 0.5) { H+=0.5; }
+      if ((h - H) >= 0.5) { H+=0.5; }
     } else {
       H = Math.ceil(h);
-      if ((H - h) > 0.5) { H-=0.5; }
+      if ((H - h) >= 0.5) { H-=0.5; }
     }
     if (H < _opening) { H = _opening; }
     if (H > _closing) { H = _closing; }
@@ -436,7 +436,7 @@ export function getHours(childHours, periods, month, year, opening, closing, hou
               if (contractHours === null) {
                 // hors contrat: child present but not in contract timetable for period
                 hoursRef.paid += leaving - arriving;
-                res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving });
+                res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving, contractHours: [0, 0] });
                 return res;
               } else {
                 let skip = true;
@@ -465,10 +465,10 @@ export function getHours(childHours, periods, month, year, opening, closing, hou
           } 
           // hors contrat: child present but not in a period 
           hoursRef.paid += leaving - arriving;
-          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving });
+          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving, contractHours: [0,0] });
         } else {
           hoursRef.paid += leaving - arriving;
-          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving });
+          res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving, contractHours: [0,0] });
         }
       }
     });
