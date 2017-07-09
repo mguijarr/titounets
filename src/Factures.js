@@ -204,7 +204,7 @@ export default class Factures extends React.Component {
     address.email = params.email;
     const content = [];
     const rate = Number(this.state.rate.rate || bill.calcRate().rate).toFixed(2);
-    const billAmount = {};
+    const billAmount = { rate, toPay: 0 };
 
     // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
     Object.keys(this.props.family.children).map(childName => {

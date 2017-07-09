@@ -111,19 +111,23 @@ export default class CAF extends React.Component {
     }
 
     const months = [];
+    const total = [ [0,0,0], [0,0,0], [0,0,0] ];
     for (var hours=[]; hours.push([null,null,null,null,null,null])<this.state.children.length;);
     for (var bill=[]; bill.push([null,null,null])<this.state.children.length;);
     let j = 0;
+    let k = 0;
     for (const m of moment.range(moment(this.state.start), moment(this.state.end)).by("month")) {
         months.push(m.format("MMMM YYYY"));
         this.state.children.forEach((c,i) => {
           const tmp = {};
-          if (c.data.surname ==="COLIN") { debugger;}
           getHours(c.hours, c.periods, m.month(), 2017, this.state.openingHours[0], this.state.openingHours[1], tmp);
           hours[i][j]=tmp.done.toFixed(2);
           hours[i][j+1]=tmp.paid.toFixed(2);
+          total[k][0] += tmp.done;
+          total[k][1] += tmp.paid;
         });
         j+=2;
+        k+=1;
     }
 
     return (
@@ -149,12 +153,15 @@ export default class CAF extends React.Component {
         </Row>
         <Row>
           <Col sm={3}>
-           <h5><b>Enfant</b></h5>
+            <p>&nbsp;</p>
           </Col>
           { months.map(m=><Col sm={3}><center><h5><b>{m}</b></h5></center></Col>) }
         </Row>
         <Row>
-           <Col sm={1} smOffset={3}><h5><b>H. realisees</b></h5></Col>  
+           <Col sm={3}>
+             <h5><b>Enfant</b></h5>
+           </Col>
+           <Col sm={1}><h5><b>H. realisees</b></h5></Col>  
            <Col sm={1}><h5><b>H. facturees</b></h5></Col>  
            <Col sm={1}><h5><b>Montant facture</b></h5></Col>  
            <Col sm={1}><h5><b>H. realisees</b></h5></Col>  
@@ -176,6 +183,18 @@ export default class CAF extends React.Component {
           <Col sm={1}><h5>{hours[i][5]}</h5></Col>
           <Col sm={1}><h5>{bill[i][2]}</h5></Col>
         </Row> } ) } 
+        <Row>
+          <Col sm={3}><h5><b>Total</b></h5></Col>
+          <Col sm={1}><h5><b>{total[0][0].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[0][1].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[0][2]}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[1][0].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[1][1].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[1][2]}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[2][0].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[2][1].toFixed(2)}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[2][2]}</b></h5></Col>
+        </Row>
       </Grid>
     );
   }
