@@ -449,11 +449,12 @@ class GestionFamilles extends React.Component {
             <hr/>
             <h3>Enfants</h3>
             <Row>
-                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
+                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName,i) => {
                   const c = family.children[childName];
                   if (c.present === undefined) { c.present = "1" };
                   return (
                     <ChildData
+                      key={10+i}
                       data={c}
                       readOnly={!auth.admin() || family.active==='0'}
                       onChange={(k, v) => {

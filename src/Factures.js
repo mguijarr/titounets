@@ -50,8 +50,9 @@ export default class Factures extends React.Component {
       busy: true,
       contractStart: last_year,
       contractEnd: last_year,
-      currentMonth: 0, 
       bills: {},
+      currentMonth: 0,
+      months: new Map(),
       parameters: {},
       changed: false,
       childrenHours: {},
@@ -62,7 +63,6 @@ export default class Factures extends React.Component {
 
     this.addLine = this.addLine.bind(this);
     this.removeLine = this.removeLine.bind(this);
-    this.selectMonth = this.selectMonth.bind(this);
     this.hoursChanged = this.hoursChanged.bind(this);
     this.desChanged = this.descChanged.bind(this);
     this.save = this.save.bind(this);
@@ -70,9 +70,9 @@ export default class Factures extends React.Component {
     this.editBill = this.editBill.bind(this);
     this.childPeriods = this.childPeriods.bind(this);
     this.getChildHours = this.getChildHours.bind(this);
-    this.hasPeriods = this.hasPeriods.bind(this);
     this.makeBill = this.makeBill.bind(this);
     this.submitBill = this.submitBill.bind(this);
+    this.getBillMonths = this.getBillMonths.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -116,10 +116,10 @@ export default class Factures extends React.Component {
       });
       const bills = res.bills[year] || {};
       res.bills[year] = bills;
-      this.setState({ parameters, currentMonth: moment().month(), changed: false, bills: res.bills, year, contractStart, contractEnd });
+      this.setState({ parameters, changed: false, bills: res.bills, year, contractStart, contractEnd });
     })];
 
-    Promise.all(promises).then(() => { this.setState({busy: false}) });
+    Promise.all(promises).then(() => { this.setState({busy: false}, ()=>this.setState({months: this.getBillMonths(this.state.year)})); });
   }
 
   save() {
@@ -150,10 +150,6 @@ export default class Factures extends React.Component {
     }
   }
 
-  selectMonth(i) {
-    this.setState({ currentMonth: i });
-  }
-
   hoursChanged(month, childName, i, hours) {
     const bills = this.state.bills;
     bills[month.year()][month.format("MMMM")][childName][i].hours = hours;
@@ -166,14 +162,16 @@ export default class Factures extends React.Component {
     this.setState({ bills, changed: true });
   }
 
-  childPeriods(childName, year) {
+  childPeriods(childName, year, month) {
     const childPeriods = [];
     Object.keys(this.state.periods).forEach(pChildName => {
           if (pChildName === childName) {
             this.state.periods[childName].forEach(p => {
               p.range = moment.range(p.range.start, p.range.end);
               if (p.range.end.year() === year) {
-                childPeriods.push(p);
+                if ((month === undefined) || ((p.range.start.month() <= month) && (p.range.end.month() >= month))) {
+                  childPeriods.push(p);
+                }
               }
             });
           }
@@ -182,6 +180,8 @@ export default class Factures extends React.Component {
   }
 
   submitBill(month) {
+    if (month === undefined) { month = this.state.months.get(this.state.currentMonth); }
+    
     const bill = this.makeBill(month);
 
     alert(bill.billAmount.toPay);
@@ -190,6 +190,8 @@ export default class Factures extends React.Component {
   }
 
   editBill(month) {
+    if (month === undefined) { month = this.state.months.get(this.state.currentMonth); }
+       
     const bill = this.makeBill(month); 
 
     downloadBill(bill.content);
@@ -210,24 +212,25 @@ export default class Factures extends React.Component {
     Object.keys(this.props.family.children).map(childName => {
       const child = this.props.family.children[childName];
       if (child.present === '1') {
-        const childPeriods = this.childPeriods(childName, this.state.year);
+        const inContract = this.state.contractStart.month() <= this.state.currentMonth && this.state.contractEnd.month() >= this.state.currentMonth;
+        const childPeriods = inContract ? this.childPeriods(childName, this.state.year) : [];
 
         if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
         if (childPeriods.length === 0) {
           // heures reelles
-          const childHours = this.getChildHours(childName);
+          const childHours = this.getChildHours(childName, [], month.month());
           if (childHours.length > 0) {
             content.push(
               ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate, billAmount)
             );
           }     
         } else {
-          const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); //this.state.contractRange);
+          const { periods, nMonths, nDays, nHours } = bill.getPeriodsMonthsDaysHours(childPeriods, this.state.parameters.closedPeriods, moment.range(this.state.contractStart, this.state.contractEnd)); 
           const hoursByMonth = (nHours / nMonths).toFixed(2); 
 
           const data = [];
 
-          const childHours = this.getChildHours(childName, childPeriods);
+          const childHours = this.getChildHours(childName, childPeriods, month.month());
           childHours.forEach((x) => {
             const c1 = Number(x.contractHours[0]);
             const c2 = Number(x.contractHours[1]);
@@ -256,24 +259,32 @@ export default class Factures extends React.Component {
   }
 
 
-  getChildHours(childName, periods) {
+  getChildHours(childName, periods, month) {
+    if (month === undefined) { month = this.state.currentMonth; }
     const childHours = this.state.childrenHours[childName] || {};
-    return getHours(childHours, periods, this.state.currentMonth, this.state.year, this.state.parameters.opening, this.state.parameters.closing, {});
+    return getHours(childHours, periods, month, this.state.year, this.state.parameters.opening, this.state.parameters.closing, {});
   }
 
-  hasPeriods(periods, hours) {
-    const month = this.state.currentMonth;
-    for (const day of Object.keys(hours)) {
-      const d = moment(day);
-      if (d.month() === month) {
-        for (const p of periods) {
-          if (p.range.contains(d)) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+  getBillMonths(year) {
+      const months = new Map();
+      Object.keys(this.props.family.children).forEach(childName => {
+        const childHours = this.state.childrenHours[childName] || {};
+        for (let i=0; i<12; i++) {
+          const childPeriods = this.childPeriods(childName, year, i);
+          const m = moment();
+          m.set('year', year);
+          m.set('month', i);
+          m.set('date', 1);
+          if (childPeriods.length > 0) {
+            months.set(i, m);
+          } else {
+            if (this.getChildHours(childName, [], i).length > 0) {
+              months.set(i, m);
+            }
+          } 
+        };
+      });
+      return months;
   }
 
   render() {
@@ -281,16 +292,18 @@ export default class Factures extends React.Component {
       return <img className="centered" src={spinner} />
     }
 
-    const months = [];
     const year = this.state.year;
-    const bills = this.state.bills[year];
-    const contractRange = moment.range(this.state.contractStart, this.state.contractEnd);
-    for (const mm of contractRange.by("month")) {
-      const m = mm.format('MMMM');
-      months.push(mm);
-      bills[m] = bills[m] || {};
+    const bill = this.state.bills[year] || {};
+    const currentMonth = this.state.months.get(this.state.currentMonth);
+    const monthsList = [];
+    let currentMonthName = "";
+ 
+    for (let [i, m] of this.state.months) {
+      const monthName = m.format('MMMM');
+      if (i === this.state.currentMonth) { currentMonthName = monthName; }
+      bill[monthName] = bill[monthName] || {};
+      monthsList.push(<MenuItem key={i} onSelect={()=>this.setState({ currentMonth: i }) }>{monthName}</MenuItem>);
     }
-    const currentMonthName = months[this.state.currentMonth] ? months[this.state.currentMonth].format("MMMM") : ""; 
 
     return (
       <Grid>
@@ -302,7 +315,7 @@ export default class Factures extends React.Component {
             </Col>
             <Col sm={2}>
               <DropdownButton id="current-month" title={currentMonthName}>
-                {months.map((m, i) => <MenuItem key={i} onSelect={()=>this.selectMonth(i)}>{m.format('MMMM')}</MenuItem>)}
+                {monthsList}
               </DropdownButton>
             </Col>
             <Col sm={9}>
@@ -310,7 +323,7 @@ export default class Factures extends React.Component {
                 <Button bsStyle="primary" disabled={!this.state.changed} onClick={this.save}>
                   <Glyphicon glyph="save"/>{' '}Enregistrer
                 </Button> 
-                <Button bsStyle="primary" onClick={()=>this.editBill(months[this.state.currentMonth])}>
+                <Button bsStyle="primary" onClick={()=>this.editBill()}>
                   <Glyphicon glyph="print"/>{' '}Imprimer
                 </Button>
               </ButtonToolbar>
@@ -330,9 +343,10 @@ export default class Factures extends React.Component {
         {Object.keys(this.props.family.children).map((childName, i) => {
             const child = this.props.family.children[childName];
             if (child.present === "0") { return "" }
-            const childPeriods = this.childPeriods(childName, year);
+            bill[childName] = bill[childName] || [{ hours: "", desc: "" }];
+            const childPeriods = this.childPeriods(childName, year, this.state.currentMonth);
             const childHours = this.state.childrenHours[childName] || {};
-            if (! this.hasPeriods(childPeriods, childHours)) { return <div key={i}>
+            if (childPeriods.length === 0) { return <div key={i}>
               <p></p>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation en heures de présence</h4></Col></Row>
               <Row><Col sm={12}>
@@ -345,16 +359,14 @@ export default class Factures extends React.Component {
                   </tr>
                 </thead>
                 <tbody>
-                  {this.getChildHours(childName, []).map(h => {
-                      return <tr><th>{h.day}</th><th>{h.label1}</th><th>{h.label2}</th></tr>
+                  {this.getChildHours(childName, []).map((h,i) => {
+                      return <tr key={10+i}><th>{h.day}</th><th>{h.label1}</th><th>{h.label2}</th></tr>
                   })}
                 </tbody>
               </Table>
               </Col></Row>
             </div>;
            } else {
-            bills[currentMonthName][childName] = bills[currentMonthName][childName] || [{ hours: "", desc: "" }];
-            const bill = bills[currentMonthName][childName];
             return child.present === "0" ? "" : <div>
               <p></p>
               <Row><Col sm={6}><h4><Label>{childName}</Label></h4></Col><Col sm={6}><h4>facturation au contrat</h4></Col></Row>
@@ -369,15 +381,15 @@ export default class Factures extends React.Component {
                   </tr>
                 </thead>
                 <tbody>
-                  {this.getChildHours(childName, childPeriods).map(h => {
-                      return <tr><th>{h.day}</th><th>{h.label1}</th><th>{h.label2}</th></tr>
+                  {this.getChildHours(childName, childPeriods).map((h,i) => {
+                      return <tr key={10+i}><th>{h.day}</th><th>{h.label1}</th><th>{h.label2}</th></tr>
                   })}
                 </tbody>
               </Table>
               </Col></Row>
               <Row><Col sm={12}><h5>2. saisie manuelle</h5></Col></Row>
               <Row>
-              {bill.map((line, i) =>
+              {bill[childName].map((line, i) =>
                 <Form horizontal>
                   <FormGroup>
                     <Col sm={3} componentClass={ControlLabel}>
@@ -388,7 +400,7 @@ export default class Factures extends React.Component {
                         readOnly={!auth.admin()}
                         type="text"
                         value={line.hours}
-                        onChange={(e)=>this.hoursChanged(months[this.state.currentMonth], childName, i, e.target.value)}
+                        onChange={(e)=>this.hoursChanged(currentMonth, childName, i, e.target.value)}
                       />
                     </Col>
                     <Col sm={1} componentClass={ControlLabel}>
@@ -399,13 +411,13 @@ export default class Factures extends React.Component {
                         readOnly={!auth.admin()}
                         type="text"
                         value={line.desc}
-                        onChange={(e)=>this.descChanged(months[this.state.currentMonth], childName, i, e.target.value)}
+                        onChange={(e)=>this.descChanged(currentMonth, childName, i, e.target.value)}
                       />
                     </Col>
                     <Col sm={2}>
                       <ButtonToolbar className="pull-right">
-                        <Button onClick={()=>this.addLine(months[this.state.currentMonth], childName)}><Glyphicon glyph="plus"/></Button>
-                        <Button onClick={()=>this.removeLine(months[this.state.currentMonth], childName, i)}><Glyphicon glyph="minus"/></Button>
+                        <Button onClick={()=>this.addLine(currentMonth, childName)}><Glyphicon glyph="plus"/></Button>
+                        <Button onClick={()=>this.removeLine(currentMonth, childName, i)}><Glyphicon glyph="minus"/></Button>
                       </ButtonToolbar>
                     </Col>
                   </FormGroup>
@@ -424,7 +436,7 @@ export default class Factures extends React.Component {
                   onClick={()=>this.setState({showSubmitBill: false})}
                 >Annuler</Button>
                 <Button bsStyle="primary"
-                  onClick={()=>this.submitBill(months[this.state.currentMonth])}
+                  onClick={()=>this.submitBill}
                 >Confirmer</Button>
               </Modal.Footer>
            </Modal>
