@@ -9,6 +9,7 @@ export default class Contract {
     this.getContents = this.getContents.bind(this);
     this.calcRate = this.calcRate.bind(this);
     this.getBill = this.getBill.bind(this);
+    this.calcBill = this.calcBill.bind(this);
     this.getFamilyName = this.getFamilyName.bind(this);
     this.getPeriodsMonthsDaysHours = this.getPeriodsMonthsDaysHours.bind(this);
     this.getHoursBill = this.getHoursBill.bind(this);
@@ -92,22 +93,55 @@ export default class Contract {
     return { periods, nMonths, nDays, nHours };
   }
 
+  calcBill(hRate, data, nHours) {
+    const rate = parseFloat(hRate);
+
+    if (nHours != undefined) {
+      const SHours = [];
+      const DHours = [];
+      const monthlyAmount = (rate * nHours).toFixed(2);
+      let nSHours = 0;
+      let nDHours = 0;
+
+      data.map(d => {
+        const n = parseFloat(d.hours);
+        if (! isNaN(n)) {
+          if (n<0) {
+            nDHours -= n;
+            DHours.push([d.desc, (-n).toString(), rate.toString(), (n*rate).toFixed(2).toString()]);
+          } else {
+            nSHours += n;
+            SHours.push([d.desc, n.toString(), rate.toString(), (n*rate).toFixed(2).toString()]);
+          }
+        }
+      });
+
+      return { amount: (parseFloat(monthlyAmount)+rate*(nSHours - nDHours)).toFixed(2),
+               monthlyAmount,
+               SHours,
+               DHours }
+    } else {
+      const hoursTable = [];
+      let amount = 0;
+
+      data.forEach((h,i) => {
+        const a = parseFloat(h.arriving);
+        const b = parseFloat(h.leaving);
+        const dayAmount = rate*(b-a);
+        amount += dayAmount;
+        hoursTable.push([h.day, h.label1, h.label2, (b-a).toString(), rate.toString(), dayAmount.toFixed(2).toString()]);
+      });
+
+      amount = amount.toFixed(2);
+
+      return { amount, hoursTable };
+    }
+  }
+
   getHoursBill(name, address, monthName, year, childName, hours, rate, billAmount) {
     const familyName = this.getFamilyName();
-
-    const hoursTable = [];
-    let amount = 0;
-
-    hours.forEach((h,i) => {
-      const a = parseFloat(h.arriving);
-      const b = parseFloat(h.leaving);
-      const dayAmount = parseFloat(rate)*(b-a);
-      amount += dayAmount;
-      hoursTable.push([h.day, h.label1, h.label2, (b-a).toString(), rate, dayAmount.toFixed(2).toString()]);
-    });
-
-    amount = amount.toFixed(2);
-    billAmount.toPay = amount;
+    const { amount, hoursTable } = this.calcBill(rate, hours);
+    billAmount[childName] = amount;
     hoursTable.push(["", "", "", "", { text: "Total dû", bold: true }, { text: amount.toString(), bold: true }]);
 
     return [
@@ -170,31 +204,12 @@ export default class Contract {
           }
       }, { width: '*', text: '' } ] }
     ]
-
   }
 
   getBill(name, address, monthName, year, childName, nHours, rate, data, billAmount) {
     const familyName = this.getFamilyName();
-    const monthlyAmount = (rate * nHours).toFixed(2);
-    let nSHours = 0;
-    let nDHours = 0;
-    const SHours = [];
-    const DHours = [];
-    data.map(d => {
-      const n = parseFloat(d.hours);
-      if (! isNaN(n)) {
-        if (n<0) {
-          nDHours -= n;
-          DHours.push([d.desc, (-n).toString(), rate, (n*parseFloat(rate)).toFixed(2).toString()]);
-        } else {
-          nSHours += n;
-          SHours.push([d.desc, n.toString(), rate, (n*parseFloat(rate)).toFixed(2).toString()]);
-        }
-      }
-    });
-
-    const amount = (parseFloat(monthlyAmount)+parseFloat(rate)*(nSHours - nDHours)).toFixed(2);
-    billAmount.toPay = amount;
+    const { amount, monthlyAmount, SHours, DHours } = this.calcBill(rate, data, nHours);
+    billAmount[childName] = amount;
 
     return [ 
       { columns: [ { text: `${name}`, style: "title", width: "30%" } ] },
