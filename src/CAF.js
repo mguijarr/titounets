@@ -41,10 +41,10 @@ export default class CAF extends React.Component {
     this.state = {
       busy: false,
       trimester: 0,
+      year: 2017,
       start: null,
       end: null,
-      children: [],
-      openingHours: []
+      data: [],
     };
 
     this.trimesterChanged = this.trimesterChanged.bind(this);
@@ -58,49 +58,38 @@ export default class CAF extends React.Component {
     this.setState({ trimester: i });
 
     if (i == 0) {
-        this.setState({ start: moment("01-01-2017", "DD-MM-YYYY"), end: moment("01-03-2017", "DD-MM-YYYY") });
+        this.setState({ start: moment("01-01-"+this.state.year, "DD-MM-YYYY"), end: moment("01-03-"+this.state.year, "DD-MM-YYYY") });
     } else if (i == 1) {
-        this.setState({ start: moment("01-04-2017", "DD-MM-YYYY"), end: moment("01-06-2017", "DD-MM-YYYY") });
+        this.setState({ start: moment("01-04-"+this.state.year, "DD-MM-YYYY"), end: moment("01-06-"+this.state.year, "DD-MM-YYYY") });
     } else if (i == 2) {
-        this.setState({ start: moment("01-07-2017", "DD-MM-YYYY"), end: moment("01-09-2017", "DD-MM-YYYY") });
+        this.setState({ start: moment("01-07-"+this.state.year, "DD-MM-YYYY"), end: moment("01-09-"+this.state.year, "DD-MM-YYYY") });
     } else if (i == 3) {
-        this.setState({ start: moment("01-10-2017", "DD-MM-YYYY"), end: moment("01-12-2017", "DD-MM-YYYY") });
+        this.setState({ start: moment("01-10-"+this.state.year, "DD-MM-YYYY"), end: moment("01-12-"+this.state.year, "DD-MM-YYYY") });
     } 
   }
 
   componentDidMount() {
     this.setState({busy: true});
     
-    const promises = [fetch("/api/childrenHoursPeriods", {
+    const promises = [fetch("/api/bills/archive/"+this.state.year, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
     }).then(checkStatus).then(parseJSON).then(res => {
-      const tmp = {}
+      const data = {}
       for (const username in res) {
-        for (const childName in res[username]) {
-          const child = res[username][childName];
-          child.periods.forEach(p => {
-              p.range = moment.range(p.range.start, p.range.end);
-          });
-          tmp[child.data.surname + " " + child.data.name] = child;
+        for (const m in res[username]) {
+          if (data[m] === undefined) { data[m] = {}; }
+          for (const childName in res[username][m]) {
+            if (childName === '__bill__') { continue; }
+            const child = res[username][m][childName];
+            const k = child.data.surname + " " + child.data.name;
+            data[m][k] = { hoursDone: child.hoursDone, hoursCharged: child.hoursCharged, amount: child.amount };
+          }
         }
       }
-      const children = Object.keys(tmp).sort().map(k=>tmp[k]);
-      this.setState({ children });
-    }),
-    // get opening hours
-    fetch("/api/parameters", {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-      .then(checkStatus)
-      .then(parseJSON)
-      .then(res => {
-        this.setState({ openingHours: [res.opening, res.closing] });
-      })
-    ]
+      this.setState({ data });
+    })];
   
     Promise.all(promises).then(() => { this.setState({busy: false}); this.trimesterChanged(0); });
   }
@@ -112,25 +101,33 @@ export default class CAF extends React.Component {
 
     const months = [];
     const total = [ [0,0,0], [0,0,0], [0,0,0] ];
-    for (var hours=[]; hours.push([null,null,null,null,null,null])<this.state.children.length;);
-    for (var bill=[]; bill.push([null,null,null])<this.state.children.length;);
+    const tmp = {};
+    let i = 0;
     let j = 0;
-    let k = 0;
+
     for (const m of moment.range(moment(this.state.start), moment(this.state.end)).by("month")) {
         months.push(m.format("MMMM YYYY"));
-        this.state.children.forEach((c,i) => {
-          const tmp = {};
-          getHours(c.hours, c.periods, m.month(), 2017, this.state.openingHours[0], this.state.openingHours[1], tmp);
-          hours[i][j]=tmp.done.toFixed(2);
-          hours[i][j+1]=tmp.paid.toFixed(2);
-          total[k][0] += tmp.done;
-          total[k][1] += tmp.paid;
-        });
+        const childrenData = this.state.data[m.month()];
+        if (childrenData != undefined) {
+          Object.keys(childrenData).forEach(childName => {
+            const data = childrenData[childName];
+            if (tmp[childName] === undefined) {
+              tmp[childName] = { hours: [0, 0, 0, 0, 0, 0], bill: [0, 0, 0] }
+            }
+            total[i][0] += Number(data.hoursDone);
+            total[i][1] += Number(data.hoursCharged);
+            total[i][2] += Number(data.amount);
+            tmp[childName].hours[j] = data.hoursDone;
+            tmp[childName].hours[j+1] = data.hoursCharged;
+            tmp[childName].bill[i] = data.amount;
+        }); }
+        i+=1;
         j+=2;
-        k+=1;
     }
 
-    return (
+   const children = Object.keys(tmp).sort().reduce((r, k) => (r[k] = tmp[k], r), {});
+
+   return (
       <Grid>
         <Row>
           <Col sm={12} lgOffset={2}>
@@ -171,29 +168,31 @@ export default class CAF extends React.Component {
            <Col sm={1}><h5><b>H. facturees</b></h5></Col>  
            <Col sm={1}><h5><b>Montant facture</b></h5></Col>  
         </Row>
-        { this.state.children.map((c, i) => { return <Row>
-          <Col sm={3}><h5>{c.data.surname + ' ' + c.data.name}</h5></Col>
-          <Col sm={1}><h5>{hours[i][0]}</h5></Col>
-          <Col sm={1}><h5>{hours[i][1]}</h5></Col>
-          <Col sm={1}><h5>{bill[i][0]}</h5></Col>
-          <Col sm={1}><h5>{hours[i][2]}</h5></Col>
-          <Col sm={1}><h5>{hours[i][3]}</h5></Col>
-          <Col sm={1}><h5>{bill[i][1]}</h5></Col>
-          <Col sm={1}><h5>{hours[i][4]}</h5></Col>
-          <Col sm={1}><h5>{hours[i][5]}</h5></Col>
-          <Col sm={1}><h5>{bill[i][2]}</h5></Col>
+        { Object.keys(children).map(childName=>{
+            const childData=children[childName];
+            return <Row>
+              <Col sm={3}><h5>{childName}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[0]}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[1]}</h5></Col>
+              <Col sm={1}><h5>{childData.bill[0]}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[2]}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[3]}</h5></Col>
+              <Col sm={1}><h5>{childData.bill[1]}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[4]}</h5></Col>
+              <Col sm={1}><h5>{childData.hours[5]}</h5></Col>
+              <Col sm={1}><h5>{childData.bill[2]}</h5></Col>
         </Row> } ) } 
         <Row>
           <Col sm={3}><h5><b>Total</b></h5></Col>
           <Col sm={1}><h5><b>{total[0][0].toFixed(2)}</b></h5></Col>
           <Col sm={1}><h5><b>{total[0][1].toFixed(2)}</b></h5></Col>
-          <Col sm={1}><h5><b>{total[0][2]}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[0][2].toFixed(2)}</b></h5></Col>
           <Col sm={1}><h5><b>{total[1][0].toFixed(2)}</b></h5></Col>
           <Col sm={1}><h5><b>{total[1][1].toFixed(2)}</b></h5></Col>
-          <Col sm={1}><h5><b>{total[1][2]}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[1][2].toFixed(2)}</b></h5></Col>
           <Col sm={1}><h5><b>{total[2][0].toFixed(2)}</b></h5></Col>
           <Col sm={1}><h5><b>{total[2][1].toFixed(2)}</b></h5></Col>
-          <Col sm={1}><h5><b>{total[2][2]}</b></h5></Col>
+          <Col sm={1}><h5><b>{total[2][2].toFixed(2)}</b></h5></Col>
         </Row>
       </Grid>
     );

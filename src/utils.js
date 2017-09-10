@@ -467,6 +467,7 @@ export function getHours(childHours, periods, month, year, opening, closing, hou
           hoursRef.paid += leaving - arriving;
           res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1}), hors contrat`, arriving, label2: `${d} (${h2}), hors contrat`, leaving, contractHours: [0,0] });
         } else {
+          // heures realisees
           hoursRef.paid += leaving - arriving;
           res.push({ day: m.format("DD-MM-YYYY"), label1: `${a} (${h1})`, arriving, label2: `${d} (${h2})`, leaving, contractHours: [0,0] });
         }

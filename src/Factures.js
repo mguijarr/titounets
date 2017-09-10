@@ -66,6 +66,7 @@ export default class Factures extends React.Component {
     this.hoursChanged = this.hoursChanged.bind(this);
     this.desChanged = this.descChanged.bind(this);
     this.save = this.save.bind(this);
+    this.archiveBill = this.archiveBill.bind(this);
     this.getData = this.getData.bind(this);
     this.editBill = this.editBill.bind(this);
     this.childPeriods = this.childPeriods.bind(this);
@@ -179,12 +180,34 @@ export default class Factures extends React.Component {
     return childPeriods;
   }
 
+  archiveBill(year, month, bill) {
+   const bills = {}
+
+   Object.keys(this.props.family.children).forEach((childName, i) => {
+        const child = this.props.family.children[childName];
+        if (child.present != "0") {
+          const tmp = {};
+          getHours(this.state.childrenHours[childName] || {}, this.state.periods[childName], month, year, this.state.parameters.opening, this.state.parameters.closing, tmp);
+          bills[childName] = { "hoursDone": tmp.done.toFixed(2), "hoursCharged" : tmp.paid.toFixed(2), "bill":  bill }
+        }
+    });
+
+    fetch("/api/bills/"+this.props.family.id+"/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ "year": year, "month": month, bills})
+    });
+  }
+
   submitBill(month) {
     if (month === undefined) { month = this.state.months.get(this.state.currentMonth); }
     
     const bill = this.makeBill(month);
 
-    alert(bill.billAmount.toPay);
+    this.save();
+    
+    this.archiveBill(this.state.year, this.state.currentMonth, bill);
 
     this.setState({ showSubmitBill: false });
   }
@@ -193,6 +216,10 @@ export default class Factures extends React.Component {
     if (month === undefined) { month = this.state.months.get(this.state.currentMonth); }
        
     const bill = this.makeBill(month); 
+    
+    this.save();
+    
+    this.archiveBill(this.state.year, this.state.currentMonth, bill);
 
     downloadBill(bill.content);
   }
@@ -206,7 +233,7 @@ export default class Factures extends React.Component {
     address.email = params.email;
     const content = [];
     const rate = Number(this.state.rate.rate || bill.calcRate().rate).toFixed(2);
-    const billAmount = { rate, toPay: 0 };
+    const amount = { };
 
     // periods in the form: { childName: [ { range: xxx, timetable: { "2": [hStart, hEnd], ... } }, ...], ... }
     Object.keys(this.props.family.children).map(childName => {
@@ -221,7 +248,7 @@ export default class Factures extends React.Component {
           const childHours = this.getChildHours(childName, [], month.month());
           if (childHours.length > 0) {
             content.push(
-              ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate, billAmount)
+              ...bill.getHoursBill(params.name, address, monthName, this.state.year, childName, childHours, rate, amount)
             );
           }     
         } else {
@@ -234,7 +261,7 @@ export default class Factures extends React.Component {
           childHours.forEach((x) => {
             const c1 = Number(x.contractHours[0]);
             const c2 = Number(x.contractHours[1]);
-            const cmsg = (c1+c2 > 0) ?  "(contrat: "+formatHour(60*c1)+"->"+formatHour(60*c2)+")" : " (hors contrat)"; 
+            const cmsg = (c1+c2 > 0) ?  " (contrat: "+formatHour(60*c1)+"->"+formatHour(60*c2)+")" : " (hors contrat)"; 
             const h1 = Number(x.arriving);
             const h2 = Number(x.leaving);
             const hs = h2-c2+c1-h1;
@@ -249,15 +276,14 @@ export default class Factures extends React.Component {
           }
           
           content.push(
-            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, data, billAmount)
+            ...bill.getBill(params.name, address, monthName, this.state.year, childName, hoursByMonth, rate, data, amount)
           );
         }
       }
     });
 
-    return { content, billAmount };
+    return { content, amount };
   }
-
 
   getChildHours(childName, periods, month) {
     if (month === undefined) { month = this.state.currentMonth; }
@@ -436,7 +462,7 @@ export default class Factures extends React.Component {
                   onClick={()=>this.setState({showSubmitBill: false})}
                 >Annuler</Button>
                 <Button bsStyle="primary"
-                  onClick={()=>this.submitBill}
+                  onClick={()=>this.submitBill()}
                 >Confirmer</Button>
               </Modal.Footer>
            </Modal>

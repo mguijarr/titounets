@@ -218,12 +218,12 @@ def _get_children_hours(db, username):
     ret = {}
 
     for k in db.scan_iter(match="%s:children:*:hours" % username):
-        _, _, childName, _ = k.split(":")
-        ret[childName] = db.hgetall(k)
-        for day in ret[childName]:
-          hoursString = ret[childName][day]
+        _, _, child_name, _ = k.split(":")
+        ret[child_name] = db.hgetall(k)
+        for day in ret[child_name]:
+          hoursString = ret[child_name][day]
           hours = map(float, ast.literal_eval(hoursString))
-          ret[childName][day] = hours
+          ret[child_name][day] = hours
     return ret
 
 @app.route("/api/childrenHours/<username>", methods=["GET"])
@@ -545,18 +545,48 @@ def submit_bill(username):
   db, _ = get_db_et(session["etablissement"])
 
   content = request.get_json()
-  month = content["month"]
-  year = int(content["year"])  
-  data = content["data"]
+  month = int(content["month"])
+  year = int(content["year"])
+  data = content["bills"]
+  
   key = "%s:archivedBills:%d:%s" % (username, year, month)
 
   with db.pipeline() as p:
-    db.hset(key, "data", content["data"])
+    db.hset(key, "data", data)
     db.hset(key, "paid", "0")
-    db.hset(key, "amount", content["amount"])
     p.execute()
  
   return make_response("", 200)
+
+@app.route("/api/bills/archive/<year>", methods=["GET"])
+def get_archived_bills(year):
+  if not session.get('admin'):
+    return make_response("", 401)
+  
+  db, _ = get_db_et(session["etablissement"])
+  ret = dict()
+  families = set()
+
+  for k in db.scan_iter(match="*"):
+    if ":children"  in k:
+      username = k.split(":")[0]
+      families.add(username)
+
+  archived_bills = {}
+  for username in families:
+    for k in db.scan_iter(match="%s:archivedBills:%s:*" % (username, year)):
+       month = k.split(":")[-1]
+       data = ast.literal_eval(db.hget(k, "data"))
+       d = dict()
+       for child_name in data.keys():
+         d[child_name] = data[child_name].copy()
+         d[child_name]["amount"] = data[child_name]["bill"]["amount"][child_name]
+         del d[child_name]["bill"]
+         d[child_name]["data"] = _get_child_data(db, username, child_name)
+       d["__bill__"] = data[child_name]["bill"]["content"]
+       archived_bills.setdefault(username, {}).update({ month: d })
+
+  return jsonify(archived_bills)
 
 @app.route("/api/bills/<username>/list", methods=["GET"])
 def get_bills_list(username):
@@ -586,33 +616,9 @@ def get_bills_list(username):
   for year in years:
     ret.append({ "year": year, "months": [] })
     for month, bill in archived_bills[year].iteritems():
-      ret[-1]["months"].append({ "month": month, "data": bill["data"], "paid": bill["paid"], "amount": bill["amount"] })
+      ret[-1]["months"].append({ "month": month, "data": bill["data"], "paid": bill["paid"] })
 
   return jsonify(ret)
-
-@app.route("/api/childrenHoursPeriods", methods=["GET"])
-def get_children_hours_periods():
-  if not session.get('admin'):
-    return make_response("", 401)
-  
-  db, _ = get_db_et(session["etablissement"])
-  ret = dict()
-  families = set()
-
-  for k in db.scan_iter(match="*"):
-    if ":children"  in k:
-      username = k.split(":")[0]
-      families.add(username)
-
-  for username in families:
-    if db.hget(username, "active") != '0':
-      p = _get_children_periods(db, username)["periods"]
-      h = _get_children_hours(db, username)
-      for child in h.iterkeys():
-        d = _get_child_data(db, username, child)
-        ret[username] = { child: { 'periods': p.get(child, []), 'hours': h[child], 'data': d } }
-
-  return jsonify(ret)      
 
 
 if __name__ == '__main__':
