@@ -355,7 +355,7 @@ class GestionFamilles extends React.Component {
       const families = sortedFamilies.map((f, i) => {
           return getFamilyName(f) + " (" + f.id + ")";
       });
-      familiesCombo = (<DropdownInput placeholder="Familles" id='families-dropdown' menuClassName='dropdown-input' options={families} onSelect={(selected) => { if (selected.index >= 0) { this.familySelected(sortedFamilies[selected.index].id); } } }/>);
+      familiesCombo = (<DropdownInput placeholder="Familles" id='families-dropdown' menuClassName='dropdown-input' options={families} onSelect={(selected) => { const selectedIndex = families.indexOf(selected.value); if (selectedIndex >= 0) { this.familySelected(sortedFamilies[selectedIndex].id); } } }/>);
     }
 
     let contents = null;
@@ -442,11 +442,12 @@ class GestionFamilles extends React.Component {
             <hr/>
             <h3>Enfants</h3>
             <Row>
-                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName) => {
+                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName, i) => {
                   const c = family.children[childName];
                   if (c.present === undefined) { c.present = "1" };
                   return (
                     <ChildData
+                      key={'child'+i}
                       data={c}
                       readOnly={!auth.admin() || family.active==='0'}
                       onChange={(k, v) => {
