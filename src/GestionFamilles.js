@@ -33,6 +33,7 @@ import {
   TextInput,
   getAddress
 } from "./utils";
+import DropdownInput from "react-dropdown-input2";
 import ChildData from "./child.js";
 import GestionContrat from "./GestionContrat.js";
 import Factures from './Factures.js';
@@ -132,6 +133,7 @@ class GestionFamilles extends React.Component {
   }
 
   familySelected(id) {
+    console.log(id);
     for (const f of this.state.families) {
       if (f.id === id) {
         if (f.rate === null) {
@@ -341,28 +343,19 @@ class GestionFamilles extends React.Component {
     const adminView = auth.loggedIn() && auth.admin();
     const family = this.state.selectedFamily;
 
-    let families = "";
+    let familiesCombo = ""; 
     if (adminView) {
-      let title = "Familles";
-      if (Object.keys(family).length > 0) {
-        const familyName = getFamilyName(family);
-        title = `${familyName} (${family.id})`;
-      }
-      families = (<DropdownButton title={title} id='families-dropdown' key={1}>
-        {this.state.families.sort((a, b) => {
+      const sortedFamilies = this.state.families.sort((a, b) => {
           if (getFamilyName(a) < getFamilyName(b)) {
             return -1;
           } else {
             return 1;
           }
-        }).map((f, i) => {
-          return (
-            <MenuItem key={i} eventKey={f.id} onSelect={this.familySelected}>
-              {getFamilyName(f) + " (" + f.id + ")"}
-            </MenuItem>
-          );
-        })}
-      </DropdownButton>);
+        });
+      const families = sortedFamilies.map((f, i) => {
+          return getFamilyName(f) + " (" + f.id + ")";
+      });
+      familiesCombo = (<DropdownInput placeholder="Familles" id='families-dropdown' menuClassName='dropdown-input' options={families} onSelect={(selected) => { const selectedIndex = families.indexOf(selected.value); if (selectedIndex >= 0) { this.familySelected(sortedFamilies[selectedIndex].id); } } }/>);
     }
 
     let contents = null;
@@ -449,7 +442,7 @@ class GestionFamilles extends React.Component {
             <hr/>
             <h3>Enfants</h3>
             <Row>
-                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName,i) => {
+                {Object.keys(family).length > 0 ? Object.keys(family.children).map((childName, i) => {
                   const c = family.children[childName];
                   if (c.present === undefined) { c.present = "1" };
                   return (
@@ -490,8 +483,8 @@ class GestionFamilles extends React.Component {
     return (
       <Grid>
         {adminView ? <Row>
-          <Col lg={6}>
-            {families}{'   '}
+          { familiesCombo == '' ? '' : <Col lg={4}>{familiesCombo}</Col> }
+          <Col lg={2}>
             { family.id ? 
             <DropdownButton noCaret bsStyle={family.active === '1' ? "success": "warning"} title={family.active === '1' ? "Famille active" : "Famille suspendue"} id="activate-family-dropdown" key={2}>
                   <MenuItem key={21} onSelect={this.toggleFamilyActiveState}>
