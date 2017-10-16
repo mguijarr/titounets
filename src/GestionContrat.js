@@ -322,7 +322,7 @@ export default class GestionContrat extends React.Component {
 
   contractYearPeriods(childName) {
     return this.state.periods[childName].filter(p => {
-      return p.range.end.year() === this.state.contractYear;
+      return (p.range.start.within(this.state.contractRange) && p.range.end.within(this.state.contractRange));
     });
   }
 
