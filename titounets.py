@@ -580,7 +580,11 @@ def get_archived_bills(year):
        d = dict()
        for child_name in data.keys():
          d[child_name] = data[child_name].copy()
-         d[child_name]["amount"] = data[child_name]["bill"]["amount"][child_name]
+         try:
+             d[child_name]["amount"] = data[child_name]["bill"]["amount"][child_name]
+         except KeyError:
+             # several children, no data for one of them
+             d[child_name]["amount"] = 0 
          del d[child_name]["bill"]
          d[child_name]["data"] = _get_child_data(db, username, child_name)
        d["__bill__"] = data[child_name]["bill"]["content"]
