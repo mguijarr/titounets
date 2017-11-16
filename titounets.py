@@ -609,7 +609,7 @@ def get_bills_list(username):
       continue
     else:
       year = int(year)
-    archived_bills.set_default(year, {})[month] = db.hgetall(k)
+    archived_bills.setdefault(year, {})[month] = db.hgetall(k)
     bill = archived_bills[year][month]
     data = bill.pop("data")
     bill["data"] = ast.literal_eval(data)

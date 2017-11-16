@@ -66,12 +66,14 @@ export default class FacturesParents extends React.Component {
   getData(familyId) {
     this.setState({ busy: true });
 
+
     //@app.route("/api/bills/<username>/list", methods=["GET"])
     fetch("/api/bills/" + familyId + "/list", {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
     }).then(checkStatus).then(parseJSON).then(bills => {
+      console.log(bills);
       this.setState({ busy: false, bills });
     })
   }
@@ -86,10 +88,10 @@ export default class FacturesParents extends React.Component {
         <p></p>
         <Form horizontal>
           {this.state.bills.map(yearBills=>
-            {yearBills.months.map(bill=>
+            yearBills.months.sort((b1,b2)=>{ return parseInt(b1.month)>=parseInt(b2.month)}).map(bill=>
               <FormGroup>
-                <Col sm={2} componentClass={ControlLabel}>
-                  {bill.month + ' ' + yearBills.year + ':'}
+              <Col sm={2} componentClass={ControlLabel}>
+                  {moment.months()[bill.month] + ' ' + yearBills.year + ':'}
               </Col>
               <Col sm={2}>
                 {bill.amount}
@@ -97,11 +99,11 @@ export default class FacturesParents extends React.Component {
               <Col sm={4}>
                 <ButtonToolbar className="pull-right">
                   <Button>Imprimer</Button>
-                  <Button bsStyle={bill.paid ? "success" : "primary" }>{bill.paid ? "Acquitée" : "Payer"}</Button>
+                  <Button bsStyle={bill.paid === "1" ? "success" : "primary" }>{bill.paid === "1" ? "Acquitée" : "Payer"}</Button>
                 </ButtonToolbar>
               </Col>
-            </FormGroup>
-          )})}
+              </FormGroup>
+          ))}
         </Form>
         <hr />
       </Grid>

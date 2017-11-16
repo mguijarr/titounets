@@ -60,35 +60,35 @@ export default class Contract {
      });
 
      childPeriods.forEach((p, i) => {
-       const sd = moment(p.range.start);
-       const ed = moment(p.range.end);
-       while (isClosed(sd, closedPeriods)) { sd.add(1,"days"); }
-       while (isClosed(ed, closedPeriods)) { ed.add(-1,"days"); }
-       periods.push([sd.format("L"), ed.format("L"), "", "", ""]);
+       if (p.range.start.within(contractPeriod) && p.range.end.within(contractPeriod)) {
+         const sd = moment(p.range.start);
+         const ed = moment(p.range.end);
+         while (isClosed(sd, closedPeriods)) { sd.add(1,"days"); }
+         while (isClosed(ed, closedPeriods)) { ed.add(-1,"days"); }
+         periods.push([sd.format("L"), ed.format("L"), "", "", ""]);
 
-       const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
+         const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
 
-       const r = moment.range(p.range.start, p.range.end);
-       for (const d of r.by("day")) {
-         if (! isClosed(d, closedPeriods)) {
-           const hour = p.timetable[d.weekday()+1];
-           if (hour) {
-             nHours += hour[1] - hour[0];
-             nDays += 1;
+         for (const d of p.range.by("day")) {
+           if (! isClosed(d, closedPeriods)) {
+             const hour = p.timetable[d.weekday()+1];
+             if (hour) {
+               nHours += hour[1] - hour[0];
+               nDays += 1;
+             }
            }
          }
-       }
 
-       days.forEach(d => {
-         const hour = p.timetable[d];
-         if (hour) {
-           periods.push(["","", this.jours[d-1], formatClockTime(hour[0]*3600), formatClockTime(hour[1]*3600)]);
-         }
-       });
+         days.forEach(d => {
+           const hour = p.timetable[d];
+           if (hour) {
+             periods.push(["","", this.jours[d-1], formatClockTime(hour[0]*3600), formatClockTime(hour[1]*3600)]);
+           }
+         });
+      }
     });
 
-    const r = moment.range(contractPeriod.start, contractPeriod.end);
-    const nMonths = Array.from(r.by("month")).length;
+    const nMonths = Array.from(contractPeriod.by("month")).length;
 
     return { periods, nMonths, nDays, nHours };
   }
