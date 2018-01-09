@@ -78,7 +78,7 @@ export default class GestionContrat extends React.Component {
     this.deletePeriod = this.deletePeriod.bind(this);
     this.closeEdit = this.closeEdit.bind(this);
     this.editContract = this.editContract.bind(this);
-    this.contractYearPeriods = this.contractYearPeriods.bind(this);
+    //this.contractYearPeriods = this.contractYearPeriods.bind(this);
     this.timeTableChanged = this.timeTableChanged.bind(this);
     this.findDays = this.findDays.bind(this);
     this.rateChanged = this.rateChanged.bind(this);
@@ -294,7 +294,6 @@ export default class GestionContrat extends React.Component {
           return p.range.overlaps(pickedRange);
         });
       })) {
-      console.log("overlaps");
       return;
     }
     this.setState({ show: true, currentRange: [ start, end ], target });
@@ -320,11 +319,13 @@ export default class GestionContrat extends React.Component {
     return false;
   }
 
+  /*
   contractYearPeriods(childName) {
     return this.state.periods[childName].filter(p => {
-      return (p.range.start.within(this.state.contractRange) && p.range.end.within(this.state.contractRange));
+      return p.range.end.within(this.state.contractRange);
     });
   }
+  */
 
   rateChanged(event) {
     this.setState({ rate: { CAF: false, rate: event.target.value }, saveEnabled: true });
@@ -353,8 +354,9 @@ export default class GestionContrat extends React.Component {
       const child = f.children[childName];
       if (child.present === '1') {
         if (content.length > 1) { content.push({text: "", pageBreak: "after"}) };
-        const periods = this.contractYearPeriods(child.name);
-        if (periods.length > 0) {
+        //const periods = this.contractYearPeriods(child.name);
+        const periods = this.state.periods[child.name];
+        //if (periods.length > 0) {
           content.push(
             ...c.getContents(
             this.state.name,
@@ -365,7 +367,7 @@ export default class GestionContrat extends React.Component {
             periods,
             this.state.rate)
           );
-        }
+        //}
       }
     });
   
@@ -419,7 +421,7 @@ export default class GestionContrat extends React.Component {
         return isHoliday(day, this.state.holidays);
       },
       unselectable: day => {
-        return isClosed(day, this.state.closedPeriods) || !day.within(this.state.contractRange);
+        return isClosed(day, this.state.closedPeriods) || !this.state.contractRange.contains(day);
       },
       today: day => {
         return moment().startOf("day").isSame(day, "d");
@@ -480,10 +482,8 @@ export default class GestionContrat extends React.Component {
       period: day => {
         for (const childName of Object.keys(this.state.periods)) {
           for (const p of this.state.periods[childName]) {
-            if (day.isSame(p.range.start) || day.isSame(p.range.end)) {
-              return false;
-            }
-            if (day.within(p.range)) {
+            if (day.isSame(p.range.start)) { return false; }
+            if (p.range.contains(day, true)) {
               return true;
             }
           }

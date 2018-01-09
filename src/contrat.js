@@ -60,9 +60,10 @@ export default class Contract {
      });
 
      childPeriods.forEach((p, i) => {
-       if (p.range.start.within(contractPeriod) && p.range.end.within(contractPeriod)) {
-         const sd = moment(p.range.start);
-         const ed = moment(p.range.end);
+       const prange = p.range.intersect(contractPeriod);
+       if (prange !== null) { //(p.range.end.within(contractPeriod)) {
+         const sd = moment(prange.start);
+         const ed = moment(prange.end);
          while (isClosed(sd, closedPeriods)) { sd.add(1,"days"); }
          while (isClosed(ed, closedPeriods)) { ed.add(-1,"days"); }
          periods.push([sd.format("L"), ed.format("L"), "", "", ""]);
@@ -70,7 +71,7 @@ export default class Contract {
          const days = Object.keys(p.timetable).sort((da,db) => { da < db ? -1 : 1 });
 
          for (const d of p.range.by("day")) {
-           if (! isClosed(d, closedPeriods)) {
+           if (! isClosed(d, closedPeriods) && contractPeriod.contains(d)) {
              const hour = p.timetable[d.weekday()+1];
              if (hour) {
                nHours += hour[1] - hour[0];

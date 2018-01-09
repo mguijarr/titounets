@@ -9,6 +9,7 @@ import {
   MenuItem,
   Form,
   FormGroup,
+  InputGroup,
   FormControl,
   ControlLabel,
   Button,
@@ -56,7 +57,8 @@ class GestionFamilles extends React.Component {
       showAddChild: false,
       addressFields: {},
       enableSave: false,
-      formValues: {}
+      formValues: {},
+      onlyActiveFamilies: true
     };
 
     this.tillSelection = null;
@@ -74,6 +76,7 @@ class GestionFamilles extends React.Component {
     this.childChanged = this.childChanged.bind(this);
     this.addChild = this.addChild.bind(this);
     this.toggleFamilyActiveState = this.toggleFamilyActiveState.bind(this);
+    this.onlyActiveFamiliesChecked = this.onlyActiveFamiliesChecked.bind(this);
   }
 
   componentDidMount() {
@@ -133,7 +136,6 @@ class GestionFamilles extends React.Component {
   }
 
   familySelected(id) {
-    console.log(id);
     for (const f of this.state.families) {
       if (f.id === id) {
         if (f.rate === null) {
@@ -339,6 +341,10 @@ class GestionFamilles extends React.Component {
     });
   }
 
+  onlyActiveFamiliesChecked(event) {
+    this.setState({onlyActiveFamilies: !this.state.onlyActiveFamilies, selectedFamily: {} });
+  }
+
   render() {
     const adminView = auth.loggedIn() && auth.admin();
     const family = this.state.selectedFamily;
@@ -351,7 +357,7 @@ class GestionFamilles extends React.Component {
           } else {
             return 1;
           }
-        });
+        }).filter((family) => this.state.onlyActiveFamilies ? family.active!=='0' : true);
       const families = sortedFamilies.map((f, i) => {
           return getFamilyName(f) + " (" + f.id + ")";
       });
@@ -483,7 +489,7 @@ class GestionFamilles extends React.Component {
     return (
       <Grid>
         {adminView ? <Row>
-          { familiesCombo == '' ? '' : <Col lg={4}>{familiesCombo}</Col> }
+          { familiesCombo == '' ? '' : <Col lg={5}><InputGroup>{familiesCombo}<InputGroup.Addon><input type="checkbox" checked={this.state.onlyActiveFamilies} onChange={this.onlyActiveFamiliesChecked} style={{verticalAlign: 'sub'}}/>{' '}Actives uniquement</InputGroup.Addon></InputGroup></Col> }
           <Col lg={2}>
             { family.id ? 
             <DropdownButton noCaret bsStyle={family.active === '1' ? "success": "warning"} title={family.active === '1' ? "Famille active" : "Famille suspendue"} id="activate-family-dropdown" key={2}>
@@ -492,7 +498,7 @@ class GestionFamilles extends React.Component {
                   </MenuItem>
             </DropdownButton> : "" }
           </Col>
-          <Col lg={6}>
+          <Col lg={5}>
             <span className="pull-right">
               <Button bsStyle="primary" onClick={() => { this.setState({ showAddFamily: true }) }}><Glyphicon glyph="plus" />Ajouter famille</Button>
               {'   '}

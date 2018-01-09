@@ -158,6 +158,7 @@ def get_children(date):
 
     for k in db.scan_iter(match="*:children:*"): #:periods"):
       username,_,child_name = k.split(":")[:3]
+      child_name = child_name.replace("_", " ")
       if ':periods' in k or ':hours' in k:
         continue
       family_data = extract_family_data(db, username)
@@ -219,6 +220,7 @@ def _get_children_hours(db, username):
 
     for k in db.scan_iter(match="%s:children:*:hours" % username):
         _, _, child_name, _ = k.split(":")
+        child_name = child_name.replace("_", " ")
         ret[child_name] = db.hgetall(k)
         for day in ret[child_name]:
           hoursString = ret[child_name][day]
