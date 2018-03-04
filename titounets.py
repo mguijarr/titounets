@@ -560,6 +560,22 @@ def submit_bill(username):
  
   return make_response("", 200)
 
+@app.route("/api/bills/years", methods=["GET"])
+def get_bills_years():
+  if not session.get('admin'):
+    return make_response("", 401)
+  
+  db, _ = get_db_et(session["etablissement"])
+
+  ret = list()
+  
+  for k in db.scan_iter(match="*:archivedBills:*"):
+    year = int(k.split(":")[-2])
+    if not year in ret:
+      ret.append(int(year)) 
+  ret.sort()
+  return jsonify({ "years": ret })
+
 @app.route("/api/bills/archive/<year>", methods=["GET"])
 def get_archived_bills(year):
   if not session.get('admin'):

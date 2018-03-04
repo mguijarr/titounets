@@ -37,41 +37,45 @@ export default class CAF extends React.Component {
       "avril - mai - juin",
       "juillet - aout - septembre",
       "octobre - novembre - decembre" ]
+    this.years = [];
 
     this.state = {
-      busy: false,
+      busy: true,
       trimester: 0,
-      year: 2017,
+      year: 0,
       start: null,
       end: null,
       data: [],
     };
 
     this.trimesterChanged = this.trimesterChanged.bind(this);
+    this.yearChanged = this.yearChanged.bind(this);
     this.print = this.print.bind(this);
   }
 
   print() {
   }
 
-  trimesterChanged(i) {
+  trimesterChanged(year_index, i) {
     this.setState({ trimester: i });
+    const year = this.years[year_index];
 
     if (i == 0) {
-        this.setState({ start: moment("01-01-"+this.state.year, "DD-MM-YYYY"), end: moment("01-03-"+this.state.year, "DD-MM-YYYY") });
+        this.setState({ start: moment("01-01-"+year, "DD-MM-YYYY"), end: moment("01-03-"+year, "DD-MM-YYYY") });
     } else if (i == 1) {
-        this.setState({ start: moment("01-04-"+this.state.year, "DD-MM-YYYY"), end: moment("01-06-"+this.state.year, "DD-MM-YYYY") });
+        this.setState({ start: moment("01-04-"+year, "DD-MM-YYYY"), end: moment("01-06-"+year, "DD-MM-YYYY") });
     } else if (i == 2) {
-        this.setState({ start: moment("01-07-"+this.state.year, "DD-MM-YYYY"), end: moment("01-09-"+this.state.year, "DD-MM-YYYY") });
+        this.setState({ start: moment("01-07-"+year, "DD-MM-YYYY"), end: moment("01-09-"+year, "DD-MM-YYYY") });
     } else if (i == 3) {
-        this.setState({ start: moment("01-10-"+this.state.year, "DD-MM-YYYY"), end: moment("01-12-"+this.state.year, "DD-MM-YYYY") });
+        this.setState({ start: moment("01-10-"+year, "DD-MM-YYYY"), end: moment("01-12-"+year, "DD-MM-YYYY") });
     } 
   }
 
-  componentDidMount() {
-    this.setState({busy: true});
+  yearChanged(i) {
+    const year = this.years[i];
+    this.setState({ busy: true });
     
-    const promises = [fetch("/api/bills/archive/"+this.state.year, {
+    const promises = [fetch("/api/bills/archive/"+year, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include"
@@ -88,10 +92,24 @@ export default class CAF extends React.Component {
           }
         }
       }
-      this.setState({ data });
+      this.setState({ data, year: i });
     })];
   
-    Promise.all(promises).then(() => { this.setState({busy: false}); this.trimesterChanged(0); });
+    Promise.all(promises).then(() => { this.setState({busy: false}); this.trimesterChanged(i, 0); });
+  }
+
+  componentDidMount() {
+    this.setState({ busy: true });
+
+    const promises = [fetch("/api/bills/years", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    }).then(checkStatus).then(parseJSON).then(res => {
+      this.years = res.years;
+    })];
+
+    Promise.all(promises).then(() => { this.yearChanged(this.years.length-1); });
   }
 
   render() {
@@ -130,18 +148,26 @@ export default class CAF extends React.Component {
    return (
       <Grid>
         <Row>
-          <Col sm={12} lgOffset={2}>
+          <Col sm={12}>
             <Form horizontal>
               <FormGroup>
-                <Col sm={2} componentClass={ControlLabel}>Trimestre</Col>
-                <Col sm={4}>
+                <Col sm={2} componentClass={ControlLabel}>Année</Col>
+                <Col sm={2}>
                   <FormControl componentClass="select" placeholder="select"
-                   onChange = {(e) => { this.trimesterChanged(parseInt(e.target.value, 10)); }}
-                   value={this.state.trimester}>
-                    { this.trimesters.map((label,i) => <option value={i}>{label}</option>) }
+                   onChange = {(e) => { this.yearChanged(parseInt(e.target.value, 10)); }}
+                   value = {this.state.year}>
+                    { this.years.map((label, i) => <option key={'year'+i} value={i}>{label}</option>) }
                   </FormControl>
                 </Col>
-                <Col sm={1} smOffset={1}>
+                <Col sm={2} componentClass={ControlLabel}>Trimestre</Col>
+                <Col sm={3}>
+                  <FormControl componentClass="select" placeholder="select"
+                   onChange = {(e) => { this.trimesterChanged(this.state.year, parseInt(e.target.value, 10)); }}
+                   value={this.state.trimester}>
+                    { this.trimesters.map((label,i) => <option key={'trimester'+i} value={i}>{label}</option>) }
+                  </FormControl>
+                </Col>
+                <Col sm={2} smOffset={1}>
                   <Button bsStyle="primary" block onClick={this.print}>Imprimer</Button>
                 </Col>
               </FormGroup>
@@ -158,14 +184,14 @@ export default class CAF extends React.Component {
            <Col sm={3}>
              <h5><b>Enfant</b></h5>
            </Col>
-           <Col sm={1}><h5><b>H. realisees</b></h5></Col>  
-           <Col sm={1}><h5><b>H. facturees</b></h5></Col>  
+           <Col sm={1}><h5><b>H. réalisées</b></h5></Col>  
+           <Col sm={1}><h5><b>H. facturées</b></h5></Col>  
            <Col sm={1}><h5><b>Montant facture</b></h5></Col>  
-           <Col sm={1}><h5><b>H. realisees</b></h5></Col>  
-           <Col sm={1}><h5><b>H. facturees</b></h5></Col>  
+           <Col sm={1}><h5><b>H. réalisées</b></h5></Col>  
+           <Col sm={1}><h5><b>H. facturées</b></h5></Col>  
            <Col sm={1}><h5><b>Montant facture</b></h5></Col>  
-           <Col sm={1}><h5><b>H. realisees</b></h5></Col>  
-           <Col sm={1}><h5><b>H. facturees</b></h5></Col>  
+           <Col sm={1}><h5><b>H. réalisées</b></h5></Col>  
+           <Col sm={1}><h5><b>H. facturées</b></h5></Col>  
            <Col sm={1}><h5><b>Montant facture</b></h5></Col>  
         </Row>
         { Object.keys(children).map(childName=>{
